@@ -40,6 +40,7 @@ function run(){
         }
         
         
+        shownum( inputval , " CHAR " , String.fromCharCode(ntcindec) ) ; 
         shownum ( inputval , " in bcd " , output[5] = constructBCD( ntcindec+"" )); 
 
         shownum ( inputval , " in grey " , output[6] = dectogrey(ntcindec)); 
@@ -118,6 +119,7 @@ function dectogrey(text){
 function greytodec(text){
     
             var num = parseInt(text, 2);
+            var ret ="" ; 
             for (var mask = num >> 1; mask != 0; mask = mask >> 1) {
                 num = num ^ mask;
             }
