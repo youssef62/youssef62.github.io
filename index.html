@@ -7,10 +7,18 @@
 
 <h1> Numerical systems converter </h1>
 <input id = "input_num" >
-<input id = "base_input"> 
+<select id = "base_input">
+    <option value="2">BIN</option>
+    <option value="16">HEX</option>
+    <option value="8">OCT</option>
+    <option value="10">DEC</option>
+    <option value = "BCD">BCD</option>
+    <option value = "GREY">GRAY</option>
+  </select>
 
 <button id = "submit_button" onclick="run()"> Convert</button> 
-
+<div id = "content_div">
+</div>
 </body>
 
 

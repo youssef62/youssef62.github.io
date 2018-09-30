@@ -1,7 +1,14 @@
 
+var symbols = "0123456789abcdefghijklmnopqrstuvwxyz"; 
+var endbases = [2,8,10,16]; 
+var output =[...Array(20)];
+
 function run(){
+    
     var inp = document.getElementById("input_num");
     var baseinp = document.getElementById("base_input");  
+    var contdiv = document.getElementById("content_div"); 
+    contdiv.innerHTML = ""; 
     if( inp.value != "" && baseinp.value!=""){
         var numtoconv = inp.value , ntcindec ;  
         var inputval = inp.value ;    
@@ -16,12 +23,13 @@ function run(){
         else if(inpbase=="GREY"){
             ntcindec = greytodec(numtoconv); 
         }
+        else if( inpbase =="BCD"){
+            ntcindec = parseInt( BCDtoDec( numtoconv ) ); 
+        }
         else {
             ntcindec = parseInt(numtoconv , inpbase);
             shownum( inputval , " CHAR " , String.fromCharCode(ntcindec) ) ; 
-        }
-        var endbases = [2,8,10,16]; 
-        //var ntcindec = parseInt(numtoconv , inpbase); 
+        }//var ntcindec = parseInt(numtoconv , inpbase); 
         for(var i=0 ; i < endbases.length ; i++ ){
             if( parseInt(inpbase) != endbases[i] )
             {
@@ -32,9 +40,9 @@ function run(){
         }
         
         
-        shownum ( inputval , " in bcd " , constructBCD( ntcindec+"" )); 
+        shownum ( inputval , " in bcd " , output[5] = constructBCD( ntcindec+"" )); 
 
-        shownum ( inputval , " in grey " , dectogrey(ntcindec)); 
+        shownum ( inputval , " in grey " , output[6] = dectogrey(ntcindec)); 
         
 
     }
@@ -58,13 +66,29 @@ function constructBCD( s ){
     }
 return res; 
 }
+
+function BCDtoDec( s ){
+    var i = 0 , lim ;
+    var res ="" , quad = "";  
+    while( i < s.length ) {
+    quad =""; 
+    lim = min(i + 3,s.length-1); 
+    for(var j = i ; j <= lim ; j++ ){
+        quad += s[j]; 
+    }
+    res += parseInt( quand , 2 ); 
+    i = lim + 1; 
+}
+
+}
 function shownum ( s , b , res ){
     var el = document.createElement("h2"); 
-    document.body.appendChild(el);
+    document.getElementById("content_div").appendChild(el);
     el.innerText = s + " in " + b + " is " + res; 
     
 }
-var symbols = "0123456789abcdefghijklmnopqrstuvwxyz"; 
+
+
 function ConvertBases ( a , b ){
     var res = "" ; 
     while( a != 0){
@@ -73,8 +97,6 @@ function ConvertBases ( a , b ){
     }
     return res; 
 }
-
-
 
 function dectogrey(text){
     //text = text.replace(/\r\n/g, '\n');
@@ -101,4 +123,16 @@ function greytodec(text){
             }
             ret += num.toString();
     return ret;
+}
+
+function fillNumericals(endbases , inpbase){
+    for(var i=0 ; i < endbases.length ; i++ ){
+        if( parseInt(inpbase) != endbases[i] )
+        {
+           
+            shownum( inputval , endbases[i] ,output[i] = ConvertBases( ntcindec , endbases[i])) ; 
+            if(endbases[i]==2)
+            shownum ( inputval ,  " ASCII " , output[4] = ConvertBases( ntcindec , endbases[i])); 
+        }
+    }
 }
