@@ -1,23 +1,23 @@
 
 var symbols = "0123456789abcdefghijklmnopqrstuvwxyz"; 
 var endbases = [2,8,10,16]; 
-var output =[...Array(20)];
-
+var output =[...Array(8)];
+var tableEnum = ["bin" , "oct" ,"dec","hex", ]
 function run(){
     
     var inp = document.getElementById("input_num");
     var baseinp = document.getElementById("base_input");  
-    var contdiv = document.getElementById("content_div"); 
-    contdiv.innerHTML = ""; 
+    // var contdiv = document.getElementById("content_div"); 
+    // contdiv.innerHTML = ""; 
     if( inp.value != "" && baseinp.value!=""){
         var numtoconv = inp.value , ntcindec ;  
         var inputval = inp.value ;    
         var inpbase = baseinp.value ; 
-        console.log("ok");
+        
         if(inpbase == "ASCII" )inpbase = 2; 
+        
         if( inpbase == "CHAR" ){
             numtoconv = numtoconv.charCodeAt(0); 
-            shownum( inputval , " ASCII " , ConvertBases(numtoconv,2) ) ; 
             ntcindec = parseInt(numtoconv , inpbase); 
         }
         else if(inpbase=="GREY"){
@@ -28,23 +28,17 @@ function run(){
         }
         else {
             ntcindec = parseInt(numtoconv , inpbase);
-            shownum( inputval , " CHAR " , String.fromCharCode(ntcindec) ) ; 
-        }//var ntcindec = parseInt(numtoconv , inpbase); 
-        for(var i=0 ; i < endbases.length ; i++ ){
-            if( parseInt(inpbase) != endbases[i] )
-            {
-               shownum( inputval , endbases[i] , ConvertBases( ntcindec , endbases[i])) ; 
-                if(endbases[i]==2)
-                shownum ( inputval ,  " ASCII " , ConvertBases( ntcindec , endbases[i])); 
-            }
+        
         }
         
-        
-        shownum( inputval , " CHAR " , String.fromCharCode(ntcindec) ) ; 
-        shownum ( inputval , " in bcd " , output[5] = constructBCD( ntcindec+"" )); 
-
-        shownum ( inputval , " in grey " , output[6] = dectogrey(ntcindec)); 
-        
+        fillNumericals( endbases , inpbase , inputval,ntcindec) ; 
+        // CHAR
+        output[5] =  String.fromCharCode(ntcindec)  ; 
+        //BCD
+        output[6] = constructBCD( ntcindec+"" ); 
+        // GREY
+        output[7] = dectogrey(ntcindec); 
+        DisplayRes(); 
 
     }
 }
@@ -73,13 +67,14 @@ function BCDtoDec( s ){
     var res ="" , quad = "";  
     while( i < s.length ) {
     quad =""; 
-    lim = min(i + 3,s.length-1); 
+    lim = Math.min(i + 3,s.length-1); 
     for(var j = i ; j <= lim ; j++ ){
         quad += s[j]; 
     }
-    res += parseInt( quand , 2 ); 
+    res += parseInt( quad , 2 ); 
     i = lim + 1; 
 }
+return res ; 
 
 }
 function shownum ( s , b , res ){
@@ -127,14 +122,26 @@ function greytodec(text){
     return ret;
 }
 
-function fillNumericals(endbases , inpbase){
+function fillNumericals(endbases , inpbase , inputval,ntcindec){
     for(var i=0 ; i < endbases.length ; i++ ){
-        if( parseInt(inpbase) != endbases[i] )
-        {
+        
            
-            shownum( inputval , endbases[i] ,output[i] = ConvertBases( ntcindec , endbases[i])) ; 
+            output[i] = ConvertBases( ntcindec , endbases[i]) ; 
             if(endbases[i]==2)
-            shownum ( inputval ,  " ASCII " , output[4] = ConvertBases( ntcindec , endbases[i])); 
-        }
+            
+            output[4] = ConvertBases( ntcindec , endbases[i]); 
+        
     }
+}
+
+function DisplayRes(){
+    var table = document.getElementById("dataTable"); 
+    var tr = document.createElement("tr"); 
+    
+    for(var i = 0 ; i < output.length ; i++  ){
+        var td = document.createElement("td");
+        td.innerText = output[i]; 
+        tr.appendChild(td);      
+    }
+    table.appendChild(tr); 
 }
