@@ -155,7 +155,7 @@ This is an *unsupervised* learning algorithm. Group dataset in clusters without 
 
 * Cluster $k$ is formed by the points $\{\textbf{x}_{i_1^k},...,\textbf{x}_{i_n^k}\}$ 
 
-* $\mu_k$ is the *center of gravity* of cluster $k$ , $\begin{aligned}\mu_k=\frac{1}{N}\sum_{j=1}^N\textbf{x}_{{i_j}^k},\mu\in\mathbb{R}^D\end{aligned}$ : vectorial mean of elements of the cluster. 
+* $\mu_k$ is the *center of gravity* of cluster $k$ , $\mu_k=\frac{1}{N}\sum_{j=1}^N\textbf{x}_{{i_j}^k},\mu\in\mathbb{R}^D$ : vectorial mean of elements of the cluster. 
 
 * We want points in the same cluster to be the closest possible to each other , 
 
