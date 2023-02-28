@@ -32,7 +32,7 @@ printf("%d",a) // affiche 3
 
 **L'opérateur =** 
 
-<img src="C:\Users\XPS13\OneDrive\Documents\EPFL\BA4\CS207-POS\assets\image-20230226085430662.png" alt="image-20230226085430662" style="zoom:67%;" />
+<img src="assets\image-20230226085430662.png" alt="image-20230226085430662" style="zoom:67%;" />
 
 en Java, oui . En C,non. 
 
@@ -51,7 +51,7 @@ En C, l'opérateur **=** modifie le contenu de son premier opérande (à gauche)
 
 *  La différence entre `x++ `et `++x` : 
 
-![image-20230226090919219](C:\Users\XPS13\OneDrive\Documents\EPFL\BA4\CS207-POS\assets\image-20230226090919219.png)
+![image-20230226090919219](assets\image-20230226090919219.png)
 
 En C, la seule différence a donc lieu si l'on utilise la valeur de ces expressions... ...ce qui est fortement déconseillé !
 
@@ -96,7 +96,7 @@ exemple : `(x != 0.0) && (3.0/x > 12.0)` , le second terme n'est pas évalué si
   // 1,2,3,4
   ```
 
-  <img src="C:\Users\XPS13\OneDrive\Documents\EPFL\BA4\CS207-POS\assets\image-20230226093227775.png" alt="image-20230226093227775" style="zoom:67%;" />
+  <img src="assets\image-20230226093227775.png" alt="image-20230226093227775" style="zoom:67%;" />
 
 * Conseil : utilisez toujours la syntaxe avec des blocs, même si vous n'avez qu'une seule instruction. 
 
