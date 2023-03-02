@@ -10,4 +10,3 @@ You can find my course notes here :
         <li><a href="ParaConc/cours.html">Parallelism and concurrency</a></li>
         <li><a href="ML/cours.html">Introduction to ML</a></li>
 </ul>
-
