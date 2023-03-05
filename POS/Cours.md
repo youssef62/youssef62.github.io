@@ -1,12 +1,10 @@
-
-
-# **Programmation orientée système**
+# Programmation orientée système
 
 [TOC]
 
 
 
-## **W1-Introduction**  
+## W1-Introduction 
 
 **Les principaux types élémentaires définis en C sont : `int`,`double`et `char`.** 
 
@@ -14,13 +12,13 @@
 
 **⚠️Attention en C il faut toujours initialiser ses variables. Elle ne sont pas initialisée automatiquement comme en Java mais elle peuvent ( ne doivent pas ) être utilisée sans initialisation.** 
 
-### **Données modifiables / non modifiable**
+### Données modifiables / non modifiable 
 
-**Par défaut, les variables en C sont modifiables.** 
+Par défaut, les variables en C sont modifiables. 
 
-**En déclarant une variable `const`, on dit que *donnée ne pourra pas être modifiée via ce <u>nom de variable</u>*.** 
+En déclarant une variable `const`, on dit que *donnée ne pourra pas être modifiée via ce <u>nom de variable</u>*. 
 
-**⚠️Attention: cela n'assure pas l'invariabilité de la zone mémoire elle même car on peut modifier la mémoire directement.** 
+⚠️**Attention**: cela n'assure pas l'invariabilité de la zone mémoire elle même car on peut modifier la mémoire directement. 
 
 ```c
 int const a = 2 ; 
@@ -36,50 +34,50 @@ printf("%d",a) // affiche 3
 
 **<img src="assets\image-20230226085430662.png" alt="image-20230226085430662" style="zoom:67%;" />**
 
-**en Java, oui . En C,non.** 
+en Java, oui . En C,non. 
 
-**En C, l'opérateur = modifie le contenu de son premier opérande (à gauche) : sémantique de valeur**
+En C, l'opérateur = modifie le contenu de son premier opérande (à gauche) : sémantique de valeur
 
-**⚠️ L'opérateur de division entière vs régulière : `5/2 = 2` et `5.0/2 = 2.5`**
+⚠️ L'opérateur de division entière vs régulière : `5/2 = 2` et `5.0/2 = 2.5`
 
 
 
 **Quelques particularités de C :** 
 
-1. **Toutes les expressions font quelque chose *et* retournent quelque chose.** 
-2. **N'importe quel expression a une valeur logique ( toute value qui n'est pas `0` est considérée `true`)**
+1. **Toutes les expressions font quelque chose *et* retournent quelque chose. 
+2. N'importe quel expression a une valeur logique ( toute value qui n'est pas `0` est considérée `true`)
 
 ***Conséquences:*** 
 
-*  **La différence entre `x++ `et `++x` :** 
+*  **La différence entre `x++ `et `++x` : 
 
-**![image-20230226090919219](assets\image-20230226090919219.png)**
+![image-20230226090919219](assets\image-20230226090919219.png)
 
-**En C, la seule différence a donc lieu si l'on utilise la valeur de ces expressions... ...ce qui est fortement déconseillé !**
+En C, la seule différence a donc lieu si l'on utilise la valeur de ces expressions... ...ce qui est fortement déconseillé !
 
-* **`x = 3` : affecte la valeur 3 à la variable x (et donc modifie cette dernière)** 
+* `x = 3` : affecte la valeur 3 à la variable x (et donc modifie cette dernière)** 
 
-  **`x == 3` : teste la valeur de la variable x, renvoie `vrai`  si elle vaut 3 et `faux`  sinon (et donc ne modifie pas la valeur de x)** 
+  **`x == 3` : teste la valeur de la variable x, renvoie `vrai`  si elle vaut 3 et `faux`  sinon (et donc ne modifie pas la valeur de x) 
 
-  **Cependant  `if (x = 3)` est tout à fait accepté par le compilateur. ⚠️**
+  Cependant  `if (x = 3)` est tout à fait accepté par le compilateur. ⚠️
 
-**L'évaluation paresseuse:** 
+L'évaluation paresseuse: 
 
-**Les opérateurs logiques `&&` et `||` effectuent une évaluation "paresseuse" :** 
+Les opérateurs logiques `&&` et `||` effectuent une évaluation "paresseuse" : 
 
-**L'évaluation des arguments se fait de la gauche vers la droite et seuls les arguments strictement nécessaires à la détermination de la valeur logique sont évalués.**
+L'évaluation des arguments se fait de la gauche vers la droite et seuls les arguments strictement nécessaires à la détermination de la valeur logique sont évalués.
 
-**exemple : `(x != 0.0) && (3.0/x > 12.0)` , le second terme n'est pas évalué si x non nul.** 
+exemple : `(x != 0.0) && (3.0/x > 12.0)` , le second terme n'est pas évalué si x non nul. 
 
 
 
-## **W2-Boucles et structures de contrôle** 
+## W2-Boucles et structures de contrôle
 
-* **Eviter les variables globales.** 
+* Eviter les variables globales. 
 
-* **En C (contrairement à Java) Un sous-bloc peut redéfinir une variable de même nom. Elle a pour portée ce bloc et masque la variable du bloc contenant.** 
+* En C (contrairement à Java) Un sous-bloc peut redéfinir une variable de même nom. Elle a pour portée ce bloc et masque la variable du bloc contenant. 
 
-  **exemple ( à éviter )**
+  exemple ( à éviter )
 
   ```C
   #include <stdio.h>
@@ -100,7 +98,7 @@ printf("%d",a) // affiche 3
 
   **<img src="assets\image-20230226093227775.png" alt="image-20230226093227775" style="zoom:67%;" />**
 
-* **Conseil : utilisez toujours la syntaxe avec des blocs, même si vous n'avez qu'une seule instruction.** 
+* Conseil : utilisez **toujours** la syntaxe avec des blocs, même si vous n'avez qu'une seule instruction. 
 
   ```C
   if (fabs(x) > EPSILON) { // if (x != 0.0) à la précision EPSILON
@@ -123,7 +121,7 @@ printf("%d",a) // affiche 3
 
   
 
-* **L'utilisation de `break` et `continue`est découragée.** 
+* L'utilisation de `break` et `continue`est **découragée**. 
 
   * 
 
@@ -163,26 +161,26 @@ printf("%d",a) // affiche 3
   // solution i-- ou  i = 100 ( i-- mieux)
   ```
 
-  **Conseil : Ne jamais faire de copier/coller en programmant.** 
+  **Conseil** : Ne jamais faire de copier/coller en programmant. 
 
-  * **rend la mise à jour de ce programme plus difficile : reporter chaque modification de P dans chacune des copies de P** 
-  * **réduit fortement la compréhension du programme résultant** 
-  * **augmente inutilement la taille du programme( `i = 100`au dessus est du copier collé )** 
+  * rend la mise à jour de ce programme plus difficile : reporter chaque modification de P dans chacune des copies de P 
+  * réduit fortement la compréhension du programme résultant 
+  * augmente inutilement la taille du programme( `i = 100`au dessus est du copier collé ) 
 
 * **Prototypage :**
 
-  **Le prototypage est la déclaration de la fonction sans en définir le corps.**
+  Le prototypage est la déclaration de la fonction sans en définir le corps.
 
   ```c
   double moyenne(double x, double y);
   double moyenne (double,double); // possible mais déconseillé 
   ```
 
-  **Une fonction ne peut être appelée que si elle prototypée où déclarée( la déclaration compte comme prototype ).**
+  Une fonction ne peut être appelée que si elle prototypée où déclarée( la déclaration compte comme prototype ).
 
-  **Le prototypage sera utile quand on a un projet à plusieurs fichiers.** 
+  Le prototypage sera utile quand on a un projet à plusieurs fichiers.*
 
-* **Fonction sans arguments  : Il faut mettre `void `au lieu des arguments.** 
+* **Fonction sans arguments ** : Il faut mettre `void `au lieu des arguments. 
 
   ```C
   int saisie_entier(void) {
@@ -193,13 +191,13 @@ printf("%d",a) // affiche 3
   }
   ```
 
-  **`Type f();` n'est pas accepté en C : "deprecated feature"**
+  `Type f();` n'est pas accepté en C : "deprecated feature"
 
 * **Passage par valeurs vs Passage par référence** 
 
-  **Les passage d'arguments est fait toujours par valeurs.**
+  Les passage d'arguments est fait **toujours** par **valeurs**.
 
-  **Le passage par référence  est simulé en passant *la valeur du pointeur* :**  
+  Le passage par référence  est simulé en passant *la valeur du pointeur* :  
 
   ```C
   void f(int* x) { // passage par « référence »
@@ -217,24 +215,24 @@ printf("%d",a) // affiche 3
 
 * **Pas de surcharge en C :** 
 
-  **On ne peut définir deux fonctions avec le même nom mais avec des listes d'arguments différents . Si on veut une fonction qui affiche des int ou des double , en doit les nommer différemment : `display_int`et `display_double`**
+  On ne peut **pas** définir deux fonctions avec le même nom mais avec des listes d'arguments différents . Si on veut une fonction qui affiche des int ou des double , en doit les nommer différemment : `display_int`et `display_double`
 
 ## **W3- Types avancés , tableaux et structs :**
 
 ### **Modificateur de type** 
 
-* **pour `int` et `double` on peut ajouter `long` pour avoir un plus grand nombre de bits : `long int n; `a plus de bits que `int`.** 
-* **On peut avoir moins de bits pour les `int`avec `short int n;`**
-* **pour `int` et `char` on peut utiliser `unsigned int n;` pour travailler avec des positifs ;** 
+* pour `int` et `double` on peut ajouter `long` pour avoir un plus grand nombre de bits : `long int n; `a plus de bits que `int`. 
+* On peut avoir moins de bits pour les `int`avec `short int n;`
+* pour `int` et `char` on peut utiliser `unsigned int n;` pour travailler avec des positifs ; 
 
-**En C, la taille des types n'est pas spécifiée ( on ne sait pas combien de bit a le type `int`par exemple) dans la norme.**
-**Seules indications :**
+En C, la taille des types n'est pas spécifiée ( on ne sait pas combien de bit a le type `int`par exemple) dans la norme.
+Seules indications :
 
-* **le plus petit type est char**
+* le plus petit type est char
 
-* **les inégalités suivantes sont toujours vérifiées sur les tailles mémoires :**
-  **`char ≤ short int ≤ int ≤ long int`**
-  **`double ≤ long double`**  
+* les inégalités suivantes sont toujours vérifiées sur les tailles mémoires :
+  `char ≤ short int ≤ int ≤ long int`
+  `double ≤ long double`  
 
 **Pour spécifier la taille :** 
 
@@ -246,7 +244,7 @@ printf("%d",a) // affiche 3
 
 **Piège arithmétique :** 
 
-**Ce code contient une faille , où est-elle ?** 
+Ce code contient une faille , où est-elle ?
 
 ```C
 int index = demander_nombre();
@@ -255,21 +253,21 @@ if (index >= MAX) { index = MAX-1;}
 utilisation(tableau[index]);
 ```
 
-**Il ne marque pas pour `INT_MIN` car `-INT_MIN = INT_MIN`et donc on va essayer accéder à un indice négatif. ( cela a un rapport avec la représentation en Complément à deux).** 
+Il ne marque pas pour `INT_MIN` car `-INT_MIN = INT_MIN`et donc on va essayer accéder à un indice négatif. ( cela a un rapport avec la représentation en Complément à deux). 
 
-**Pour la même raison `abs(x)<0` est possible.**  
+Pour la même raison `abs(x)<0` est possible.  
 
-**Quels sont les int x tel que x == -x?`0 ET INT_MIN` ou l'équivalent pour d'autres types(`LONG_MIN`).** 
+Quels sont les int x tel que x == -x?`0 ET INT_MIN` ou l'équivalent pour d'autres types(`LONG_MIN`). 
 
 ### **Enum** 
 
-**`enum Type { valeur1, valeur2, ... };` par exemple :** 
+**`enum Type { valeur1, valeur2, ... };` par exemple : 
 
 ```C
 enum CantonRomand { Vaud, Valais, Geneve, Neuchatel, Fribourg, Jura };
 ```
 
-**On peut les utiliser avec `switch` :**
+On peut les utiliser avec `switch` :
 
 ```C
 enum CantonRomand moncanton = Vaud;
@@ -283,7 +281,7 @@ switch (moncanton) {
 }
 ```
 
-**On peut même les utiliser comme entiers, sachant que la convention utilisée est que la première valeur énumérée (`Vaud` dans l'exemple précédent) correspond à `0`.On pourrait alors par exemple faire :** 
+On peut même les utiliser comme entiers, sachant que la convention utilisée est que la première valeur énumérée (`Vaud` dans l'exemple précédent) correspond à `0`.On pourrait alors par exemple faire : 
 
 ```C
 int const NB_CANTONS_ROMANDS = Jura+1;
@@ -295,15 +293,15 @@ population[moncanton] = 616;
 
 ### **Tableaux** 
 
-**Différent des tableaux de Java. En `C` les tableaux à taille variable n'existent pas.** 
+**Différent des tableaux de Java. En `C` les tableaux à taille variable n'existent pas. 
 
-**Déclaration : `type identificateur[taille];` ex : `int age[5];` (il ne faut pas utiliser les magic numbers comme ici `5`)**
+Déclaration : `type identificateur[taille];` ex : `int age[5];` (il ne faut pas utiliser les magic numbers comme ici `5`)
 
 
 
  **Les VLA : variable length array**  
 
-**Le code suivant n'est pas un tableau statique mais une VLA , la taille du tableau ne change pas, mais elle n'est pas connue à la compilation.** 
+Le code suivant n'est pas un tableau statique mais une VLA , la taille du tableau ne change pas, mais elle n'est pas connue à la compilation. 
 
 ```C
 size_t const NB_CANTONS = 26;   // pas conne à la compilateur
@@ -329,9 +327,9 @@ int age[BIG_N] = { 0 }; // TOUT LE TABLEAU INITIALISE à 0
 
 **Syntaxe avancée :** 
 
-**Depuis C99, on peut initialiser partiellement un tableau avec la syntaxe :`{ [n] = val1, ... , valq }`**
-**Note : le reste du tableau reste initialisé à 0.**
-**Par exemple :**
+Depuis C99, on peut initialiser partiellement un tableau avec la syntaxe :`{ [n] = val1, ... , valq }`
+**Note : ** le reste du tableau reste initialisé à 0.**
+Par exemple :
 
 ```C
 double tablo[N] = { [2] = 0.5 }; // 0.0, 0.0, 0.5, 0.0, ...
@@ -348,15 +346,15 @@ int tab[MAX] = {
 
 **Remarques :** 
 
-* **⚠️ ⚠️ Il n'y a pas de vérification de débordement sur les indices du tableau.** 
+* ⚠️ ⚠️ Il n'y a pas de vérification de débordement sur les indices du tableau. 
 
-* **Un tableau n'a pas connaissance de la taille , il faut toujours l'enregistrer , la passer aux fonctions ...** 
+* Un tableau n'a pas connaissance de la taille , il faut toujours l'enregistrer , la passer aux fonctions ... 
 
 ```C
 int f(double tableau[], size_t const taille);
 ```
 
-**Toutes les déclarations suivantes sont équivalent et ne passent pas la taille du tableau :** 
+Toutes les déclarations suivantes sont équivalent et ne passent pas la taille du tableau : 
 
 ```C
 int f(double tableau[TAILLE]);
@@ -364,9 +362,9 @@ int f(double tableau[]);
 int f(double* tableau);
 ```
 
-**⚠️Attention ! Le passage d'un tableau à une fonction se fait toujours par référence , bien que ce ne soit pas explicitement marqué par le signe `&`.**
+⚠️**Attention** ! Le passage d'un tableau à une fonction se fait toujours par référence , bien que ce ne soit pas explicitement marqué par le signe `&`.
 
-**Si on ne veut pas une telle modification, on ajoute `const ` à la déclaration.** 
+Si on ne veut pas une telle modification, on ajoute `const ` à la déclaration. 
 
 ```C
 int f(const double tableau[], size_t const taille){
@@ -376,7 +374,7 @@ int f(const double tableau[], size_t const taille){
 
 ### **Alias de types : typedefs** 
 
-**définir un nouveau nom de type : `typedef type alias;`. ça permet de clarifier les types:** 
+définir un nouveau nom de type : `typedef type alias;`. ça permet de clarifier les types: 
 
 ```C
 typedef double Vecteur[N]; // comme une déclaration de variable double tableau[N]
@@ -385,11 +383,11 @@ typedef double Vecteur[N]; // comme une déclaration de variable double tableau[
 double produit_scalaire(Vecteur a, Vecteur b);
 ```
 
-**Les utilisations `typedef` est encouragée pour éclaircir les concepts dans le code.** 
+Les utilisations `typedef` est encouragée pour éclaircir les concepts dans le code. 
 
 ### **Structs** 
 
-**une `struct` est une sorte d'objet avec des  attribut publiques et sans fonctions.** 
+une `struct` est une sorte d'objet avec des  attribut publiques et sans fonctions. 
 
 ```C
 struct Nom_du_type {
@@ -456,6 +454,6 @@ typedef union {
 Int_or_Double x; // x a un attribut i , OU .d mais les deux
 x.i = 3; // x.d a été modifié ici 
 ...
-x.d = 9.87;// x.i a été modifié ici 
+x.d = 9.87;// x.i at
 ````
 
