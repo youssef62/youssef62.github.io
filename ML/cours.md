@@ -178,7 +178,57 @@ We propose the following algorithm that is guaranteed to converge but not to fin
 
 The solution does **heavily** rely on the initialization. 
 
+**Heuristic for choosing K : ** choose **k** where the drop of within cluster distances become less significant. 
 
+<img src="assets/image-20230307082919208.png" alt="image-20230307082919208" style="zoom:50%;" />
+
+### Inhomogeneous data and normalization : 
+
+The Euclidean distance is most appropriate for data with homogeneous dimensions:
+
+* In the 2D toy data, both dimensions are of commensurate magnitude. 
+* In the color image, each dimension represents a color channel and varies in the range [0,255]. 
+
+In practice, this is not always the case: 
+
+* Different data dimensions may have different magnitudes. 
+* They can encode different types of information.
+
+Suppose this is our 13-D data : ![image-20230307083428949](assets/image-20230307083428949.png)
+
+we can see that the last dimension have large values , and thus contributes largely to the euclidean distance. 
+
+**Solution : **
+
+* Scale each dimension by subtracting the smallest value and scaling the result to be between 0 and 1. 
+
+* Use a different metric such as the Manhattan distance we saw earlier.
+
+### Compactness and graphs 
+
+Given K-means clustering utilizes the notion of compactness, it has struggles in the following example : 
+
+![image-20230307084838546](assets/image-20230307084838546.png)
+
+What to do ? What to do ? 
+
+We will try to favor **connectivity** rather than compactness : <img src="assets/image-20230307085759218.png" alt="image-20230307085759218" style="zoom:40%;" />
+
+We will transform our dataset in a graph : <img src="assets/image-20230307090012465.png" alt="image-20230307090012465" style="zoom:40%;" />
+
+Similar data-points will have strong edges and different data points will have strong edges. this is how we will define **similarity** : $W_{ij}=\exp\left(\dfrac{-\|\mathbf{x}_i-\mathbf{x}_j\|^2}{\sigma^2}\right)$ 
+
+$ W$ ( on the right in the image below ) will be the similarity matrix of our graph . <img src="assets/image-20230307090230993.png" alt="image-20230307090230993" style="zoom:50%;" />
+
+let's define a cut in the graph : $cut(A,B)=\sum\limits_{i\in A,j\in B}W_{ij}$ , be try to find a min cut. 
+
+<img src="assets/image-20230307090420684.png" alt="image-20230307090420684" style="zoom:40%;" />
+
+a problem we can encounter is very unbalanced cuts. to balance it we will minimize : <img src="assets/image-20230307090611818.png" alt="image-20230307090611818" style="zoom:33%;" /> where $\begin{aligned}vol(A)=\sum_{i\in A}d_i\end{aligned}$ 
+
+Lots of mathematics later this leads to the following problem : ![image-20230307090741339](assets/image-20230307090741339.png)
+
+ The solution is then obtained by the eigenvector with the second smallest eigenvalue ! 
 
 ## Linear regression : 
 

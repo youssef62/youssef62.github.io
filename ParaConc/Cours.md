@@ -269,6 +269,244 @@ Measuring performance is difficult – there multiples ways to enhance it's prec
   }
   ```
 
-  
 
-  
+### Week2 : Parallel algorithms and operations : 
+
+### Parallel merge sort : 
+
+We will implement parallel merge : 
+
+1. recursively split in two halves treated in parallel. 
+2. Sequentially merge the two halves by copying into a temporary array. 
+3. copy the temporary array back into the original array.
+
+```scala
+def parMergeSort (xs: Array[Int], maxDepth: Int): Unit = {
+    val ys = new Array[Int] (xs.length)
+    
+    def sort(from: Int, until: Int, depth: Int): Unit = {
+    if (depth == maxDepth) {
+    	quickSort(xs, from, until - from)
+    } 
+    else {
+        val mid = (from + until) / 2
+        parallel (sort (mid, until, depth + 1), sort (from, mid, depth + 1))
+        val flip = (maxDepth depth) % 2 == 0
+        val src= if (flip) ys else xs
+        val dst = if (flip) xs else ys 
+        merge(src, dst, from, mid, until)
+        }
+    }
+    
+    sort(0, xs.length, 0)
+}
+```
+
+```scala
+def copy(src: Array[Int], target: Array[Int],
+  from: Int, until: Int, depth: Int): Unit = {
+    if (depth == maxDepth) {
+    Array.copy(src, from, target, from, until - from)
+    } else {
+    val mid = (from + until) / 2
+      val right = parallel(
+        copy(src, target, mid, until, depth + 1),
+      copy(src, target, from, mid, depth + 1)
+
+if (maxDepth % 2 == 0) copy(ys, xs, 0, xs.length, 0)
+```
+
+### Operations on collections 
+
+we will study the following operation : 
+
+* `map` :  `List(1,3,8).map(x => x*x) == List(1, 9, 64)`
+* `fold`: `List(1,3,8).fold(100)((s,x) => s + x) == 112`
+* `scan` :`List(1,3,8).scan(100)((s,x) => s + x) == List(100, 101, 104, 112)`
+
+Note that `List` are not good for parallel use because we cannot efficiently : 
+
+* split them in half 
+* combine them 
+
+We will mostly use : **Arrays** and **Trees**
+
+#### Map on Lists 
+
+ Main properties :
+
+* `list.map(x => x) == list` 
+* `list.map(f.compose(g)) == list.map(g).map(f)`
+
+Sequential maps : 
+
+```scala
+// ON LIST 
+def mapSeq[A,B](lst: List[A], f : A => B): List[B] = lst match {
+    case Nil => Nil
+	case h :: t => f(h) :: mapSeq(t,f)
+} // NOT PARALLIZABLE
+
+
+
+// ON ARRAY 
+def mapASegSeq[A,B](inp: Array[A], left: Int, right: Int, f : A => B,
+out: Array[B]) = {
+    
+    var i= left
+    while (i < right) {
+        out(i)= f(inp(i))
+        i= i+1
+    } 
+}
+```
+
+Parralel map : 
+
+````scala
+def mapASegPar[A,B](inp: Array[A], left: Int, right: Int, f : A => B,
+out: Array[B]): Unit = {
+    // Writes to out(i) for left <= i <= right-1
+    if (right - left < threshold)
+    	mapASegSeq(inp, left, right, f, out)
+    else {
+        val mid = left + (right - left)/2
+        parallel(mapASegPar(inp, left, mid, f, out),
+        mapASegPar(inp, mid, right, f, out))
+	}
+}
+````
+
+* we need to write to **disjoint memory addresses** (nondeterministic behavior otherwise )
+* threshold needs to be large ( loose of efficiency otherwise )
+
+**Performence measure **: 
+
+We have 4 functions , we want to compute $\text{Array}(a_1,a_2,\ldots,a_n)\longrightarrow\text{Array}(|a_1|^p,|a_2|^p,\ldots,|a_n|^p)$ : 
+
+* `mapASegSeq` : uses map but sequentially
+* `mapASegPar` : uses map but parallel 
+* `normOfSeq` : normal sequential function with loop 
+* `normOfPar` : computes in parallel without map  
+
+```scala
+def normsOfPar(inp: Array[Int], p: Double, left: Int, right: Int,
+    out: Array[Double]): Unit = {
+    if (right - left < threshold) {
+ 		// compute sequentially 
+        normsOfSeq()
+    } else {
+    val mid = left + (right - left)/2
+    parallel(normsOfPar(inp, p, left, mid, out),
+    normsOfPar(inp, p, mid, right, out))
+    }
+}
+```
+
+```scala
+mapASegSeq(inp, 0, inp.length, f, out) // sequential
+mapASegPar(inp, 0, inp.length, f, out) // parallel
+```
+
+We get : 
+
+![image-20230304112335394](assets/image-20230304112335394.png)
+
+* Parallel `map` this way is efficient. 
+
+ 
+
+#### Maps on Trees 
+
+Let's consider the following implementation of trees : 
+
+```scala
+sealed abstract class Tree[A] { val size: Int }
+	case class Leaf[A](a: Array[A]) extends Tree[A] {
+	override val size = a.size
+}
+case class Node[A](l: Tree[A], r: Tree[A]) extends Tree[A] {
+	override val size = l.size + r.size
+}
+```
+
+we can implement map ( parralel ) this way : 
+
+```scala
+def mapTreePar[A:Manifest,B:Manifest](t: Tree[A], f: A => B) : Tree[B] =
+t match {
+    case Leaf(a) => {
+        val len = a.length; val b = new Array[B](len)
+        var i= 0
+        while (i < len) { b(i)= f(a(i)); i= i + 1 }
+        Leaf(b) }
+    case Node(l,r) => {
+    	val (lb,rb) = parallel(mapTreePar(l,f), mapTreePar(r,f))
+    	Node(lb, rb) }
+}
+```
+
+Note that the time complexity is $O(h)$  , $h$ being the height of the tree. 
+
+**List vs immutable tree :**
+
+![image-20230305144255013](assets/image-20230305144255013.png)
+
+#### Fold operations : 
+
+````scala
+List(1,3,8).fold(100)((s,x) => s + x) == 112`
+List(1,3,8).foldLeft(100)((s,x) => s - x) == ((100 - 1) - 3) - 8 == 88
+List(1,3,8).foldRight(100)((s,x) => s - x) == 1 - (3 - (8-100)) == -94
+List(1,3,8).reduceLeft((s,x) => s - x) == (1 - 3) - 8 == -10
+List(1,3,8).reduceRight((s,x) => s - x) == 1 - (3 - 8) == 6
+````
+
+When we are working in parallel we want to be able to choose the order of our operations . example : calculated (3-8) then 1-(3-8) = 1--5 . 
+
+So we want to be looking at **associative ** operations $f$ st$f(x,f(y,z)) = f(f(x,y),z)$ 
+
+Let's consider `reduce` and operation $\bigotimes$ :  
+
+![image-20230305145255444](assets/image-20230305145255444.png)
+
+By associativity we have that any all trees of same elements can be put in the following form: 
+
+<img src="assets/image-20230305150455373.png" alt="image-20230305150455373" style="zoom:50%;" />
+
+because we can do this transformation : 
+
+<img src="assets/image-20230305150521293.png" alt="image-20230305150521293" style="zoom:50%;" />
+
+Therefore we will reduce a tree :
+
+![image-20230305145456752](assets/image-20230305145456752.png)
+
+
+
+#### Reduce on Array 
+
+reduce on arrays follows naturally : 
+
+```scala
+def reduceSeg[A](inp: Array[A], left: Int, right: Int, f: (A,A) => A): A = {
+if (right - left < threshold) {
+    var res= inp(left); var i= left+1
+    while (i < right) { res= f(res, inp(i)); i= i+1 }
+    res
+} else {
+        val mid = left + (right - left)/2
+        val (a1,a2) = parallel(reduceSeg(inp, left, mid, f),
+        reduceSeg(inp, mid, right, f))
+        f(a1,a2)
+    }
+}
+
+def reduce[A](inp: Array[A], f: (A,A) => A): A =reduceSeg(inp, 0, inp.length, f)
+```
+
+
+
+example of use : Compute with map / reduce  $\begin{aligned}\sum_{i=s}^{t-1}\lfloor\left|a_i\right|^p\rfloor\end{aligned}$ 
+
+`reduce( map(a , pow(abs(_),p))  , _ + _ )`
