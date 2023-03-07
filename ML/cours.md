@@ -230,7 +230,7 @@ Lots of mathematics later this leads to the following problem : ![image-20230307
 
  The solution is then obtained by the eigenvector with the second smallest eigenvalue ! 
 
-## Linear regression : 
+## III- Linear regression : 
 
 Given pairs of elements $(x_i,y_i)$ and another input $x$ we want to predict $\hat{y}$ that is as close as possible from $y$. 
 
