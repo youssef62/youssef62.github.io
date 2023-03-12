@@ -28,7 +28,9 @@ code qui modifie la zone mémoire de a à 3
 printf("%d",a) // affiche 3 
 ```
 
-### **Les opérateurs** 
+
+
+### Les opérateurs 
 
 **L'opérateur =** 
 
@@ -217,9 +219,9 @@ exemple : `(x != 0.0) && (3.0/x > 12.0)` , le second terme n'est pas évalué si
 
   On ne peut **pas** définir deux fonctions avec le même nom mais avec des listes d'arguments différents . Si on veut une fonction qui affiche des int ou des double , en doit les nommer différemment : `display_int`et `display_double`
 
-## **W3- Types avancés , tableaux et structs :**
+## W3- Types avancés , tableaux et structs :
 
-### **Modificateur de type** 
+### Modificateur de type 
 
 * pour `int` et `double` on peut ajouter `long` pour avoir un plus grand nombre de bits : `long int n; `a plus de bits que `int`. 
 * On peut avoir moins de bits pour les `int`avec `short int n;`
@@ -259,7 +261,7 @@ Pour la même raison `abs(x)<0` est possible.
 
 Quels sont les int x tel que x == -x?`0 ET INT_MIN` ou l'équivalent pour d'autres types(`LONG_MIN`). 
 
-### **Enum** 
+### Enum
 
 **`enum Type { valeur1, valeur2, ... };` par exemple : 
 
@@ -291,7 +293,7 @@ ou alors
 population[moncanton] = 616;
 ```
 
-### **Tableaux** 
+### Tableaux 
 
 **Différent des tableaux de Java. En `C` les tableaux à taille variable n'existent pas. 
 
@@ -372,7 +374,7 @@ int f(const double tableau[], size_t const taille){
 }
 ```
 
-### **Alias de types : typedefs** 
+### Alias de types : typedefs
 
 définir un nouveau nom de type : `typedef type alias;`. ça permet de clarifier les types: 
 
@@ -385,7 +387,7 @@ double produit_scalaire(Vecteur a, Vecteur b);
 
 Les utilisations `typedef` est encouragée pour éclaircir les concepts dans le code. 
 
-### **Structs** 
+### Structs 
 
 une `struct` est une sorte d'objet avec des  attribut publiques et sans fonctions. 
 
@@ -457,3 +459,159 @@ x.i = 3; // x.d a été modifié ici
 x.d = 9.87;// x.i at
 ````
 
+## W4- Entrées sorties 
+
+### Printf 
+
+`int printf("FORMAT", expr1, expr2, ...)`
+
+**Important :** `printf` retourne le nombre de caractères écrits ou une valeur négative en cas d'échec.
+
+Tous les caractères ordinaires (sauf ’%’) sont recopiés tels quels
+
+* ’%’ introduit une conversion de valeur spécifiée par 1 caractère
+   entre le ’%’ et le caractère de spécification de conversion peuvent  apparaître
+*  ’-’ : ajustement à gauche dans le champ
+*  ’+’ : toujours afficher le signe (nombres)
+*  ’ ’ : met un espace si le premier caractère n’est pas un signe (en clair : pour les
+  nombre positifs, et sans l’option +)
+*  ’#’ : indicateur explicite de format : ajoute un 0 devant les nombres en octal, un 0x ou
+  0X devant les nombres en hexadécimal, un point systématique pour les double.
+*  ’0’ : compléter le champ par des 0 non significatifs
+*  des nombres : taille minimale du champ
+   ’*’ : taille du champ donné par une variable supplémentaire
+* ’.’ suivit d’un nombre ou de ’*’ : la « précision »
+* un indicateur de taille de l'objet : h pour short, l pour long et L pour long double.
+
+![image-20230312210115067](assets/image-20230312210115067.png)
+
+````C
+double x = 10.4276;
+double y = 123.456789;
+double z = 4.0;
+char nom[] = "ABCDEFGH";
+// 5 ici c'est le nombre minimal de caractères. .2 : deux nombres après la virgules.  
+printf(">%5.2f%%<\n",x); // >10.43%<    
+
+printf(">%7.2f%%<\n",x); // >  10.43%<  , remarquer les dex espaces, c'est à case du 7 
+printf(">%3.2f%%<\n\n", x); // >10.43%< (le « .2 » est prioritaire sur le « 3 »)
+
+printf("XX%5.4sXX\n",nom); // XX ABCDXX (4 caractères au maximum affichés sur 5 « places »)
+
+
+printf("XX%+12.4fXX\n",y); // XX+123.4568XX , pour forcer l'affichage du signe , mettre + 
+printf("XX%+012.4fXX\n",y); // XX+000123.4568XX , +quelque chose , ajoute quelquechose au lieu des espace pour padder 
+printf("XX%012.4fXX\n",y); // XX0000123.4568XX
+printf("XX%-+12.4fXX\n",y); // XX+123.4568XX , ajuste à gauche 
+    
+printf("%.2f\n",z); // 4.00
+printf("%.2g\n",z); // 4  , %g se rend compte que c'est un int , il s'adape 
+printf("%#.2g\n", z); // 4.0 , pas besoin de print 4.00 , %g s'adapte
+````
+
+
+
+⚠️`printf` n'affiche pas toujours quelque chose! En fait printf envoie ses messages dans un **tampon** (buffer). 
+
+Pour forcer l'affichage `fflush(stdout)`
+
+### scanf 
+
+`int scanf("FORMAT", pointeur1, pointeur2, ...)`
+
+Retourne `1` si la lecture s'est faite sans erreur. 
+
+Remarque : Lorsque plusieurs valeurs sont lues à la suite, le caractère séparateur de ces valeurs est **le blanc** ( le blanc est ce que `isspace`accepte)
+
+* `scanf("%[A-Z]", chaine);` Lire que des majuscules
+* `scanf("%[ˆ\n]", chaine)` Lire tout sauf ce qui suis ^ , donc ici tout sauf les retours à la ligne. 
+* `scanf(" %[ˆ\n]", chaine)`Lire tout sauf blancs initiaux et retours à la ligne. 
+* **différence avec printf** lire un double avec ` %lf` 
+* `scanf("%d%*d%lf", &i, &x)` saute un champ, ex : `3 4 5` alors 5 dans x et 3 dans i.
+
+```C
+do {
+    printf("Entrez un nombre entre 1 et 10 : ");
+    fflush(stdout);
+	scanf("%d", &i);
+} while ((i < 1) || (i > 10)); // si on rentre a => boucle infinie 
+
+// solution : 
+do {
+    printf("Entrez un nombre entre 1 et 10 : "); fflush(stdout);
+    j = scanf("%d", &i);
+    if (j != 1) {
+        printf("Je vous ai demandé un nombre, pas du charabia !\n");
+        
+        // cette ligne vide le tampon , lire tant qu'on a pas atteint la fin de stdin ou qu'il ny'a pas d'erreur sur stdin 
+        while (!feof(stdin) && !ferror(stdin) && getc(stdin) != '\n');
+    }
+} while (!feof(stdin) && !ferror(stdin) && ((j!=1) || (i<1) || (i>10)));
+```
+
+`stderr` est un flot fait pour afficher les erreurs. Il faut l'utiliser pour les messages d'erreurs. 
+
+Mais comment ?
+
+### Fichiers 
+
+Pour ouvrir un flot : 
+
+```C
+FILE* entree = NULL;
+char nom_entree[FILENAME_MAX+1];
+...
+entree = fopen(nom_entree, "r"); // en mode lecture : READ
+```
+
+Dans le cas des fichiers textes (fichiers lisibles par les humains), les « modes » d'ouverture possibles sont :
+
+* r en lecture
+
+* w en écriture (écrasement)
+
+* a en écriture (à la fin)
+* b pour manipuler des fichers binaires 
+* On peut combiner : `fichier3 = fopen(nom3, "a+b")`  
+
+En cas d'erreur d'ouverture, la fonction `fopen` retourne la valeur `NULL`.
+
+```C
+entree = fopen(...);
+if (entree == NULL) {
+/* gestion de l'erreur */
+} else {
+/* suite (avec un fichier entree valide) */
+}
+```
+
+On peut utiliser le flot ouvert avec `fprintf` , `fscanf`. 
+
+```C
+FILE* entree = NULL;
+FILE* sortie = NULL;
+// ouvrir ici ... 
+/* lit un entier dans le fichier "entree" */
+fscanf(entree, "%d", &i);
+/* et l'écrit dans le fichier "sortie" */
+fprintf(sortie, "%d\n", i);
+```
+
+Toujours vérifier la fin de ficher et l'erreur: `while ( !feof(entree) && !ferror(entree) )`
+
+⚠️ **NE PAS oublier** de fermer tout fichier ouvert! on fait : `fclose(FILE*)`
+
+#### Fichiers binaires :
+
+Il faut pour cela : 
+
+* ouvrir le fichier pour une écriture en binaire
+  sortie = `fopen(nom_fichier, "wb");`
+*  utiliser la commande `fwrite` au lieu de `fprintf` :
+  `size_t fwrite(const void* ptr, size_t taille_el,size_t nb_el, FILE* fichier);`
+  `fwrite` écrit dans le fichier fichier, `nb_el éléments`, chacun de taille `taille_el`, stockés en mémoire à la position pointée par `ptr`.
+  `fwrite` retourne le nombre d'éléments effectivement écrits.
+
+Regarder les slides(4) pour des exemples typiques le lecture / écriture. 
+
+**Repositionner la tête de lecture**: `fseek` , `ftell` , `rewind`, `ferror` et `clearerr`
