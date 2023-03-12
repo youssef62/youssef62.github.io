@@ -6,11 +6,11 @@
 
 ## W1-Introduction 
 
-**Les principaux types élémentaires définis en C sont : `int`,`double`et `char`.** 
+**Les principaux types élémentaires définis en C sont : `int`,`double`et `char`. 
 
-**Remarque : en C, il n'y a pas de type « chaîne de caractères » (`string`). En C89 il n'y a pas de booléen. (depuis C99 : type `bool` dans `stdbool.h`)**
+Remarque : en C, il n'y a pas de type « chaîne de caractères » (`string`). En C89 il n'y a pas de booléen. (depuis C99 : type `bool` dans `stdbool.h`)
 
-**⚠️Attention en C il faut toujours initialiser ses variables. Elle ne sont pas initialisée automatiquement comme en Java mais elle peuvent ( ne doivent pas ) être utilisée sans initialisation.** 
+⚠️Attention en C il faut toujours initialiser ses variables. Elle ne sont pas initialisée automatiquement comme en Java mais elle peuvent ( ne doivent pas ) être utilisée sans initialisation. 
 
 ### Données modifiables / non modifiable 
 

@@ -361,7 +361,7 @@ out: Array[B]) = {
 }
 ```
 
-Parralel map : 
+Parallel map : 
 
 ````scala
 def mapASegPar[A,B](inp: Array[A], left: Int, right: Int, f : A => B,
@@ -380,7 +380,7 @@ out: Array[B]): Unit = {
 * we need to write to **disjoint memory addresses** (nondeterministic behavior otherwise )
 * threshold needs to be large ( loose of efficiency otherwise )
 
-**Performence measure **: 
+**Performance measure **: 
 
 We have 4 functions , we want to compute $\text{Array}(a_1,a_2,\ldots,a_n)\longrightarrow\text{Array}(|a_1|^p,|a_2|^p,\ldots,|a_n|^p)$ : 
 
@@ -455,38 +455,40 @@ Note that the time complexity is $O(h)$  , $h$ being the height of the tree.
 #### Fold operations : 
 
 ````scala
-List(1,3,8).fold(100)((s,x) => s + x) == 112`
+List(1,3,8).fold(100)((s,x) => s + x) == 112
 List(1,3,8).foldLeft(100)((s,x) => s - x) == ((100 - 1) - 3) - 8 == 88
 List(1,3,8).foldRight(100)((s,x) => s - x) == 1 - (3 - (8-100)) == -94
 List(1,3,8).reduceLeft((s,x) => s - x) == (1 - 3) - 8 == -10
 List(1,3,8).reduceRight((s,x) => s - x) == 1 - (3 - 8) == 6
 ````
 
-When we are working in parallel we want to be able to choose the order of our operations . example : calculated (3-8) then 1-(3-8) = 1--5 . 
+When we are working in parallel we want to be able to *choose* the order of our operations . 
 
-So we want to be looking at **associative ** operations $f$ st$f(x,f(y,z)) = f(f(x,y),z)$ 
-
-Let's consider `reduce` and operation $\bigotimes$ :  
-
-![image-20230305145255444](assets/image-20230305145255444.png)
-
-By associativity we have that any all trees of same elements can be put in the following form: 
+The reason for that is that instead of doing the usual fold operations that look like this : 
 
 <img src="assets/image-20230305150455373.png" alt="image-20230305150455373" style="zoom:50%;" />
 
-because we can do this transformation : 
+We want to apply divide and conquer to be able to parallelize. Thus our execution of the operators will be like this one : 
 
-<img src="assets/image-20230305150521293.png" alt="image-20230305150521293" style="zoom:50%;" />
+<img src="assets/image-20230312111331037.png" alt="image-20230312111331037" style="zoom: 67%;" />
 
-Therefore we will reduce a tree :
+These two orders yield the same result only for **associative ** operations $\otimes $ st $(x\otimes( y \otimes z)) =( (x \otimes y)\otimes z)$ 
 
-![image-20230305145456752](assets/image-20230305145456752.png)
+**Reduce on Trees: **
 
+```scala
+def reduce[A](t: Tree[A], f : (A,A) => A): A = t match {
+    case Leaf(v) => v
+    case Node(l, r) => {
+        val (lV, rV) = parallel(reduce[A](l, f), reduce[A](r, f))
+        f(lV, rV)
+    }
+}
+```
 
+**Reduce on Array** :
 
-#### Reduce on Array 
-
-reduce on arrays follows naturally : 
+reduce on arrays follows naturally by divide and conquer : 
 
 ```scala
 def reduceSeg[A](inp: Array[A], left: Int, right: Int, f: (A,A) => A): A = {
@@ -505,8 +507,98 @@ if (right - left < threshold) {
 def reduce[A](inp: Array[A], f: (A,A) => A): A =reduceSeg(inp, 0, inp.length, f)
 ```
 
+example of use : Compute with map / reduce  $\begin{aligned}\sum_{i=s}^{t-1}\lfloor\left|a_i\right|^p\rfloor\end{aligned}$
+
+Answer : `reduce( map(a , pow(abs(_),p))  , _ + _ )`
+
+⚠️: parallel reduce works only for **associative** operators. 
+
+#### Associativity and Commutativity 
+
+<u>Associative</u> : $f(x,f(y,z))=f(f(x,y),z)\quad\text{}$ e.g : addition , multiplication of **integers**
+
+⚠️ floating points + not associative : `(1 + 1e20) + (-1e20) = 0 `, `1 + (1e20 + (-1e20))= 1 ` 
+
+<u>Commutative</u> : $f(x,y)=f(y,x)\quad\text{}$ addition , concatenation 
+
+concatenation commutative but not associative. many are the same. 
+
+**Making an operation commutative : Easy **
+
+`def f(x: A, y: A) = if (less(y,x)) g(y,x) else g(x,y)` , even if g is not commutative f will be. 
+
+No such trick for associativity. 
+
+**Associative operations on tuple **: associativity extends to tuples. 
+
+If $f_1$ associative and $f_2$ associative then $f(x_1,x_2,y_1,y_2) = (f_1(x_1,y_1),f_2(x_2,y_2))$  associative. 
+
+`times((x1,y1), (x2, y2)) = (x1*x2, y1*y2)` associative because multiplication is . 
+
+**Another way to prove associativity **
+
+If `f` *commutative* and `f(f(x,y), z) = f(f(y,z), x)` then f is also *associative*. 
+
+#### How to do prefix sum in parallel : the example of scanLeft 
+
+`List(1,3,8,4).scanLeft(100)(_ + _) == List(100, 101, 104, 112,116)`
+
+We will only work on associative operations. 
+
+The problem is that we try to do the usual divide and conquer , we will need values that are to be calculated by other treads. e.g we divide problem into 
+
+`[1,3]`and `[8,4]` . The sequence `[8,4]` will need the value returned by `[1,3]` to compute 112 = <u>104</u> + 8 . 
+
+What to do ? What to do ? 
+
+We will solve the problem in two steps : 
+
+1.  `upsweep`:  
+
+We will solve the problem for each interval indenpendently and store it in a tree. 
+
+<img src="assets/image-20230312121136551.png" alt="image-20230312121136551" style="zoom: 25%;" />
+
+Here we will neglect the initial accumulator (100 in the example), we can add it later. 
+
+This idea resides in this observation : 
+
+<img src="assets/image-20230312121755070.png" alt="image-20230312121755070" style="zoom:30%;" />
+
+And that's exactly what we will do in 2.`backsweep`
+
+2. `backsweep`
+
+Now we well traverse the tree that we saved :
+
+<img src="assets/image-20230312121902897.png" alt="image-20230312121902897" style="zoom:33%;" />
+
+that is expressed in code in this way : 
+
+`parallel(downsweep[A](l, a0, f), downsweep[A](r, f(a0, l.res), f))`
+
+when we are in the root ( blue ) and we go to right (red) we pass to it `l.res`(which is 4 above = yellow ). 
+
+Now the full code : 
+
+```scala
+def upsweep[A](t: Tree[A], f: (A,A) => A): TreeRes[A] = t match {
+    case Leaf(v) => LeafRes(v)
+    case Node(l, r) => {
+        val (tL, tR) = parallel(upsweep(l, f), upsweep(r, f))
+        NodeRes(tL, f(tL.res, tR.res), tR)
+    }
+}
+
+// āa0ā is reduce of all elements left of the tree ātā
+def downsweep[A](t: TreeRes[A], a0: A, f : (A,A) => A): Tree[A] = t match {
+    case LeafRes(a) => Leaf(f(a0, a))
+    case NodeRes(l, _, r) => {
+        val (tL, tR) = parallel(downsweep[A](l, a0, f),
+        downsweep[A](r, f(a0, l.res), f))
+        Node(tL, tR) } 
+}
 
 
-example of use : Compute with map / reduce  $\begin{aligned}\sum_{i=s}^{t-1}\lfloor\left|a_i\right|^p\rfloor\end{aligned}$ 
+```
 
-`reduce( map(a , pow(abs(_),p))  , _ + _ )`
