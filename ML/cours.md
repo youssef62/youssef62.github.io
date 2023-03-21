@@ -1,10 +1,10 @@
-# Introduction to Machine Learning : 
+# Introduction to Machine Learning  
 
 [TOC]
 
 
 
-## General ML concepts : 
+## General ML concepts :
 
 * *supervised learning* : we are given data and its true labels. 
 * *unsupervised learning* : The training set is not annotated and the system must also learn the classes.
@@ -23,7 +23,7 @@
 
   <img src="assets/image-20230228084433369.png" alt="image-20230228084433369" style="zoom:33%;" />
 
-## I- K-Nearest Neighbors : 
+## I- K-Nearest Neighbors 
 
 We want to classify our data in classes. For example our data is in $\mathbb{R}^2$ and we have  2 classes (say dogs and cats). 
 
@@ -495,7 +495,7 @@ To make it unsinged :  $d_n=t_n\dfrac{(\tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}
 * We observe that $t_n\dfrac{(\tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}_n)}{\mid\mid\mathbf{w}\mid\mid}$ is invariant to scaling $\tilde{\textbf{w}}$ so we can scale it such that for the closest point $x_m$ we have $t_m\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_m)=1$ 
   * For all others : $t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ 
 
-* the smallest distance becomes : $\cdot m i n_{n}d_{n}=m i n_{n}\frac{t_{n}(\tilde{\mathbf{w}}\cdot\mathbf{x}_{n})}{\mid\mid\mathbf{w}\mid\mid}=\frac{1}{\mid\mid\mathbf{w}\mid\mid}$ 
+* the smallest distance becomes : $m i n_{n}d_{n}=m i n_{n}\frac{t_{n}(\tilde{\mathbf{w}}\cdot\mathbf{x}_{n})}{\mid\mid\mathbf{w}\mid\mid}=\frac{1}{\mid\mid\mathbf{w}\mid\mid}$ 
 
   * The new problem is : maximize $\frac{1}{\mid\mid\mathbf{w}\mid\mid}$ subject $t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ 
 
