@@ -258,9 +258,9 @@ So the metric to minimize is $\begin{aligned}\frac{1}{N}\sum_{i=1}^N (\hat y_i-y
 
 * Our input $x \in \text{$\mathbb{R}$} $ becomes a vector $x \in {\text{$\mathbb{R}$}}^D$. 
 
-* Our prediction becomes $\hat y =  w^{(0)}+w^{(1)}x^{(1)}+w^{(2)}x^{(2)}+\ldots+w^{(D)}x^{(D)}=\mathbf{w}^{T}\left[\begin{matrix}{1}\\ {x^{(1)}}\\ {x^{(2)}}\\ {\vdots}\\ {x^{(D)}}\\ \end{matrix}\right] = w^Tx $
+* Our prediction becomes $\hat y =  w^{(0)}+w^{(1)}x^{(1)}+w^{(2)}x^{(2)}+\ldots+w^{(D)}x^{(D)}=\mathbf{w}^{T}\left[\begin{matrix}{1}\\ {x^{(1)}}\\ {x^{(2)}}\\ {\vdots}\\ {x^{(D)}}\\ \end{matrix}\right] = w^T \tilde{x} $
 
-  where $x \in {\text{$\mathbb{R}$}}^{D+1}$ where the extra dimension is the 1 that goes with $w^{(0)}$.
+  where $\tilde{x} \in {\text{$\mathbb{R}$}}^{D+1}$  is the $x$ extended to account to bias.
 
 * Weights are  $w = argmin( \frac{1}{N}\sum_{i=1}^N(\textbf{x}_i^T\textbf{w}-y_i)^2 )$ where $w \in \mathbb{R}^{D+1}$ . 
 
@@ -349,12 +349,51 @@ This is a closed form form formula were $ X^{\dagger} $ is  *Moore-Penrose pseud
 Until now we have only seen regressions with output $ y_i \in \mathbb{R}$ , what if we want a multidimensional output $ y_i \in \mathbb{R}^{C} , C > 1 $ . 
 
 * To output multiple values, the linear model cannot just rely on a vector $\textbf{w}$ ,  because the product $\textbf{w}^TX$ yields a single value. 
-* therefore we will use a matrix $ \textbf{W}\in\mathbb{R}^{(D+1)\times C}$ and $\hat{\mathbf{y}}_i=\mathbf{W}^T\mathbf{x}_i=\begin{bmatrix}\mathbf{w}_{(1)}^T\\ \mathbf{w}_{(2)}^T\\ \vdots\\ \mathbf{w}_{(C)}^T\end{bmatrix}\mathbf{x}_i$ 
+* therefore we will use a matrix $ \textbf{W}\in\mathbb{R}^{(D+1)\times C}$ and $\hat{\mathbf{y}}_i=\mathbf{W}^T\mathbf{\tilde{x}}_i=\begin{bmatrix}\mathbf{w}_{(1)}^T\\ \mathbf{w}_{(2)}^T\\ \vdots\\ \mathbf{w}_{(C)}^T\end{bmatrix}\mathbf{\tilde{x}}_i$ 
 * We can repeat the same reasoning as earlier , $y$ becomes a matrix $\textbf{y }=\begin{bmatrix}\textbf{y}_1^T\\ \textbf{y}^T\\ \vdots\\ \textbf{y}_N^T\end{bmatrix} \in \mathbb{R}^{(N\times C)}$
 
 
 
-## Classification 
+## IV- Classification 
+
+Problem : Find such that $\textbf{w}$ : 
+• for all or most positive samples $w\tilde{x} > 0 $
+• for all or most negative samples $w\tilde{x} < 0$ 
+
+​													<img src="assets/image-20230318165923849.png" alt="image-20230318165923849" style="zoom:50%;" />
+
+### Binary classification with the perceptron 
+
+Algorithm : 
+
+---
+
+* Set $w_1$ to $0$ .  
+* Iteratively, pick a random $n$ 
+  * if $x_n$ correctly classsified , do nothing
+  * otherwise $w_{t+1} = w_t + t_n\tilde{x}_{n+1}$.
+
+$w_t$ is the weight at iteration $t$ . 
+
+This will result in the plane making a series of rotations : 
+
+​					<img src="assets/image-20230318171257165.png" alt="image-20230318171257165" style="zoom:45%;" /> $\implies$<img src="assets/image-20230318171618966.png" alt="image-20230318171618966" style="zoom:45%;" />
+
+**The convergence theorem:**
+
+![image-20230318171939230](assets/image-20230318171939230.png)
+
+the condition of the theorem says that data are *linearly seperable*
+
+<img src="assets/image-20230318172017142.png" alt="image-20230318172017142" style="zoom:50%;" />
+
+We minize : $E(\mathbf w)=-\sum\limits_{n=1}^{N}\mathrm{sign}(\mathbf w\cdot\mathbf x_n)t_n$ 
+
+And... that is a problem because : 
+
+<img src="assets/image-20230318172155841.png" alt="image-20230318172155841" style="zoom:50%;" />
+
+We want to be less close from points ( image a diagonal line )
 
 ### Binary classification with regressions  
 
@@ -381,7 +420,7 @@ in the second picture :
 
 * The output of the linear model is a continuous value * 
 
-  *  What we would really like is a discrete output,     $y=\left\{\begin{matrix}1\quad\text{if}\ \mathbf{w}^T\mathbf{x}\geq0.5\\ 0\quad\text{otherwise}\end{matrix}\right.$
+  *  What we would really like is a discrete output,     $y=\left\{\begin{matrix}1\quad\text{if}\ \mathbf{w}^T\mathbf{\tilde{x}}\geq0.5\\ 0\quad\text{otherwise}\end{matrix}\right.$
 
   <img src="assets\image-20230211141534451.png" alt="image-20230211141534451" style="zoom:60%;" />
 
@@ -389,17 +428,148 @@ in the second picture :
 
   * the problem with the above function is that the gradient of the function is non continuous which makes optimization hard. 
 
-  * a smooth approximation of the step function , such as the logistic sigmoid function . $\hat{y}=\sigma(\textbf{w}^T\textbf{x})=\dfrac{1}{1+\exp(-\textbf{w}^T\textbf{x})}$  
+  * a smooth approximation of the step function , such as the logistic sigmoid function . $\hat{y}=\sigma(\textbf{w}^T\tilde{x})=\dfrac{1}{1+\exp(-\textbf{w}^T\tilde{x})}$  
 
-    ​							<img src="assets\image-20230211142123766.png" alt="image-20230211142123766" style="zoom:40%;" /> 
+    ​							<img src="assets\image-20230211142123766.png" alt="image-20230211142123766" style="zoom:40%;" />
 
-  * probability of elements being well labeled $\begin{aligned}p(\textbf{y}\:|\:\textbf{w})=\prod\limits_{i=1}^N\hat{y}_i^{y_i}\cdot(1-\hat{y}_i)^{1-y_i}\end{aligned}$ 
+    
 
+    **sigmoid** is amazing because :
+
+    1. infinitely differentiable
+    2. derivate easy to compute : $\frac{\partial\sigma}{\partial a}=\sigma(1-\sigma)$ 
+  
+  * likelihood of elements being well labeled $\begin{aligned}p(\textbf{y}\:|\:\textbf{w})=\prod\limits_{i=1}^N\hat{y}_i^{y_i}\cdot(1-\hat{y}_i)^{1-y_i}\end{aligned}$
+  
+    * if $\hat{y_i} = 1$ then the term in the product will be $1^{y_i}0^{1-y_i}$ so $1$ if we guess right and $0$ if we don't. Same reasoning if $y_0=0$ . 
+  
   * Given that this is a product of terms between 0 and 1 , it is hard to maximize , so we will try to minize $- \ln(probability)$. 
-
+  
     ​							$\begin{aligned}R(\textbf{w})=-\sum_{i=1}^N\big(y_i\ln(\hat{y}_i)+(1-y_i)\ln(1-\hat{y}_i)\big)\end{aligned}$  
+  
+    This is a *convex* function of $\textbf{w}$  $\implies$ easy to optimize. 
 
 ​			this is the cross entropy , it can also be rewritten as : 
 
-​										$\begin{aligned}R(\mathbf{w})=-\sum_{i\in\text{positive samples}}\ln(\hat{y}_i)-\sum_{i\in\text{negative samples}}\ln(1-\hat{y}_i)\end{aligned}$   . 
+​										$\begin{aligned}R(\mathbf{w})=-\sum_{i\in\text{positive samples}}\ln(\hat{y}_i)-\sum_{i\in\text{negative samples}}\ln(1-\hat{y}_i)\end{aligned}$   . The problem 
 
+![image-20230318172436471](assets/image-20230318172436471.png)
+
+The right classification would be : 
+
+![image-20230321083010350](assets/image-20230321083010350.png)
+
+### Multiclass logistic regression 
+
+<img src="assets/image-20230321155745961.png" alt="image-20230321155745961" style="zoom:60%;" />
+
+Our approach will be similar : 
+
+* $K$ linear classifiers of the form $y^{k}(\mathbf{x})=\sigma(\mathbf{w}_{k}^{T}\mathbf{x})$ . The $i$-th classifier answers the question : Is this input in class $i$ ?
+* Assign $x$ to class $k$ if $y^{k}(\mathbf{x})>y^{l}(\mathbf{x}) \quad \forall l\neq k$ 
+
+![image-20230321160215259](assets/image-20230321160215259.png)
+
+
+
+### Maximizing the margin 
+
+**The margin** : the distance from the closest point of the decision boundary.   
+
+<img src="assets/image-20230321083049391.png" alt="image-20230321083049391" style="zoom: 50%;" />
+
+The larger the margin , the better. 
+
+<img src="assets/image-20230321083218525.png" alt="image-20230321083218525" style="zoom:50%;" />
+
+Signed distance :  $\frac{\tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}}{\mid\mid\mathbf{w}\mid\mid\mid}$
+
+To make it unsinged :  $d_n=t_n\dfrac{(\tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}_n)}{\mid\mid\mathbf{w}\mid\mid}$  , $\tilde{\mathbf{w}}^{\prime}=\frac{\tilde{\mathbf{w}}}{\mid\mid\mathbf{w}\mid\mid}=[\frac{w_{0}}{\mid\mid\mathbf{w}\mid\mid}\mid\frac{\mathbf{w}}{\mid\mid\mathbf{w}\mid\mid\mid}]$ 
+
+
+
+* Suppose all points can be classified $\forall n,\quad t_n(\tilde{\mathbf{w}}_n\cdot\tilde{\mathbf{x}}_n)>=0$ 
+
+* We want to maximize the closest distance : $\tilde{\mathbf{w}}^*=\operatorname{argmax}_{\tilde{\mathbf{w}}}\min\limits_n\left(\dfrac{t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)}{\|\mathbf{w}\|}\right)$ 
+
+* We observe that $t_n\dfrac{(\tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}_n)}{\mid\mid\mathbf{w}\mid\mid}$ is invariant to scaling $\tilde{\textbf{w}}$ so we can scale it such that for the closest point $x_m$ we have $t_m\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_m)=1$ 
+  * For all others : $t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ 
+
+* the smallest distance becomes : $\cdot m i n_{n}d_{n}=m i n_{n}\frac{t_{n}(\tilde{\mathbf{w}}\cdot\mathbf{x}_{n})}{\mid\mid\mathbf{w}\mid\mid}=\frac{1}{\mid\mid\mathbf{w}\mid\mid}$ 
+
+  * The new problem is : maximize $\frac{1}{\mid\mid\mathbf{w}\mid\mid}$ subject $t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ 
+
+  * very hard 
+
+* Easier equivalent problem : 
+
+  > $\mathbf{w}*=argmin_{\mathbf{w}}\dfrac{1}{2}|\big|\mathbf{w}|\big|^2 \quad \text{subject to },t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1 \quad \forall n$ 
+
+  * This is a quadratic program, which is a **convex** problem. 
+
+BUT , we are heavily reliant on the fact that $\forall n,\quad t_n(\tilde{\mathbf{w}}_n\cdot\tilde{\mathbf{x}}_n) \geq 0$  and 
+
+In the real world , that is never the case 
+
+<img src="assets/image-20230321085427813.png" alt="image-20230321085427813" style="zoom:50%;" />
+
+#### Slack variables 
+
+$t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ is a strict constraint let's relax it $t_{n}\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_{n})\geq1-\xi_{n}.$ 
+
+<img src="assets/image-20230321085828433.png" alt="image-20230321085828433" style="zoom:50%;" />
+
+The higher the $\xi_n$ is the more we allow the model to misclassify  $\mathbf{x}_n $  
+
+**Naive formulation:** 
+
+> $\begin{aligned}\mathbf{w}^*=argmin_{\mathbf{w}}\frac{1}{2}\left|\left|\mathbf{w}\right|\right|^2\\ \text{subject to }\forall n,t_n\cdot(\mathbf{\bar{w}}\cdot\mathbf{x}_n)\geq1-\xi_n\text{ and }\xi_n\geq0\end{aligned}$  
+
+The model will just choose hight values of $\xi_n$ and will not learn  
+
+**Right formulation :**
+
+> $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{x}_n)\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$  
+
+<img src="assets/image-20230321091207441.png" alt="image-20230321091207441" style="zoom: 67%;" />
+
+### AdaBoost
+
+What if our data is not linearly classifiable ? 
+
+We will try to solve this problem we will combine many linear classifiers ( these are "weak" classifiers )
+
+<img src="assets/image-20230321094346597.png" alt="image-20230321094346597" style="zoom:67%;" />
+
+$\begin{aligned}y(\textbf{x})=\alpha_1y_1(\textbf{x})+\alpha_2y_2(\textbf{x})+\alpha_3y_3(\textbf{x})+\ldots\end{aligned}$ 
+
+* $y_i$ are our classifiers
+* $\alpha_i$ are our classifier weights 
+
+Our algorithm will be iterative and will assign weights $w_i$ to points. If a point is misclassified often its weight will be high to prioritize correcting it. 
+
+<img src="assets/image-20230321094715895.png" alt="image-20230321094715895" style="zoom:33%;" />
+
+Example : Right points are missclassified $\implies$ they will get bigger weights
+
+---
+
+Algorithm 
+
+1. Initialize $w_n^{(1)} = 1/N$ 
+
+2. for $t$ in $1,...,N$ 
+
+3. Find classifiers $y_t$ : that minimizes $\sum_{t_n\neq y_t(\textbf{x}_n)}w_n^t\text{.}$ 
+
+4. Evaluate: $\epsilon_t=\dfrac{\sum_{t_n\neq y_t(\mathbf{x}_n)}w_n^t}{\sum_{n=1}^{N}w_n^t}$ 
+
+   ​					$\alpha_t=\log(\dfrac{1-\epsilon_t}{\epsilon_t})$ 
+
+5. Update weights $w_n^{t+1}=w_n^t\exp(\alpha_t \mathbb{I}(t_n\neq y_t(\mathbf{x}_n)))$ 
+
+6. **Result** : $Y(\mathbf{x})=\text{sign}(\sum_{t=1}^{T}\alpha_t y_t(\mathbf{x}))$ 
+
+---
+
+**Important : ** Classifiers $y_t$ should behave better than random. 

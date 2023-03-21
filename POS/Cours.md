@@ -615,3 +615,47 @@ Il faut pour cela :
 Regarder les slides(4) pour des exemples typiques le lecture / écriture. 
 
 **Repositionner la tête de lecture**: `fseek` , `ftell` , `rewind`, `ferror` et `clearerr`
+
+### W5-Pointeurs
+
+Pourquoi les pointeurs ? 
+
+* à permettre un partage d'objet *sans copies* entre divers bouts de code.
+
+   ☞ **Reference**
+
+  Pour ne pas faire de copies de `struct` par exemple
+
+* à pouvoir choisir des éléments non connus a priori ☞**généricité** : 
+
+   exemple : Choisir une fonction : 
+
+  ```C
+  typedef double (*Fonction)(double);
+  
+  double integre(Fonction f, double a, double b) { ... }
+  
+  integre(f1, a, b)  		// 
+  integre(&f1, a, b)		// ces deux lignes équivalentes 
+  ```
+
+* à pouvoir manipuler des objets dont la durée de vie (≃ portée dynamique) dépasse les blocs dans lesquels ils sont déclarés (portée, au sens syntaxique) ☞ **allocation dynamique**
+
+**Qu'est-ce qu'un pointeur ? **
+
+Le pointeur sur une variable est l'adresse de l'emplacement mémoire qui contient sa valeur.
+
+<img src="assets/image-20230320084716147.png" alt="image-20230320084716147" style="zoom:50%;" />
+
+**Comprendre les pointeurs**
+
+Un pointeur c'est comme la page d'un carnet d'adresse
+
+* *déclarer un pointeur*  :  ajouter une page dans le carnet (mais cela ne veut pas dire qu'il y a une adresse écrite dessus ! )
+
+  ```C
+  int* ptr = &i;
+  int* ptr = NULL; /* ne pointe NULLe part */
+  ```
+
+* *allouer un pointeur p :* aller construire une maison quelque part et noter son adresse sur la page p (mais p n'est pas la maison, c'est juste la page qui contient l’adresse de cette maison !)

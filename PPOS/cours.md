@@ -48,3 +48,11 @@ Cela doit être la toute première ligne de vos fichiers `.h`.
 ### Make feedback 
 
 before `make feedback` do `sudo service docker start`
+
+- `sector.c` 
+		`sector_read()`
+- `mount.c`
+	mountv6()
+	'umountv6()
+- u6fs.c
+	ajouter une commande qui appelle inode_scan_print dans inode 

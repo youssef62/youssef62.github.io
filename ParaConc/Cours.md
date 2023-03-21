@@ -269,8 +269,7 @@ Measuring performance is difficult – there multiples ways to enhance it's prec
   }
   ```
 
-
-### Week2 : Parallel algorithms and operations : 
+## Week2 : Parallel algorithms and operations : 
 
 ### Parallel merge sort : 
 
@@ -600,5 +599,217 @@ def downsweep[A](t: TreeRes[A], a0: A, f : (A,A) => A): Tree[A] = t match {
 }
 
 
+```
+
+## Week3 : Data-Parallelism 
+
+*Task-parallelism* : we have multiple processors , we give each a task. 
+
+*Data-parallelism:* we have multiple process , we give all same task on different data(we distribute the *data*). 
+
+Example : for loop
+
+```scala
+def initializeArray(xs: Array[Int])(v: Int): Unit = {
+    for (i <- (0 until xs.length).par) { // will create a parallel array
+    	xs(i) = v
+    }
+}
+```
+
+Let's consider `def foldLeft[B](z: B)(f: (B, A) => B): B` , we know it is not parallelizable without extra assuming on the operator `f` (associativity). 
+
+That is because if `f`is not associative there's only one possible order to execute it.
+
+It is the same for `foldRight`,`reduceLeft`,`reduceRight` and `scanRight`
+
+​													 <img src="assets/image-20230316084741114.png" alt="image-20230316084741114" style="zoom:70%;" />
+
+Let us see it's consider `def fold(z: A)(f: (A, A) => A): A`, we can parallelize it :                                
+
+​															<img src="assets/image-20230316094451506.png" alt="image-20230316094451506" style="zoom:50%;" />  
+
+`fold` is useful :
+
+```scala
+def sum(xs: Array[Int]): Int = {
+	xs.par.fold(0)(_ + _)
+}
+def max(xs: Array[Int]): Int = {
+	xs.par.fold(Int.MinValue)(math.max)
+}
+```
+
+for the fold operation to work , it must hold that: `f` is associative and `z` is neutral (`f(z,x)=x`)
+
+What if we want to do this ? 
+
+```scala
+Array('E','P', 'F', 'L').par
+.fold(0)((count, c) => if (isVowel(c)) count + 1 else count)
+// DOES NOT COMPILE 
+Array('E','P', 'F', 'L').par.aggregate(0)(
+(count, c) => if (isVowel(c)) count + 1 else count,
+_ + _
+)n// WORKS 
+ 
+```
+
+`aggregate` is a combination of `fold` and 
+
+```scala
+def aggregate[B](z: B)(f: (B, A) => B, g: (B, B) => B): B
+```
+
+Do the `foldingLeft`  with `f`and then combine them with `g`
+
+<img src="assets/image-20230316095153645.png" alt="image-20230316095153645" style="zoom:50%;" />
+
+### Scala parallel collections 
+
+There exists traits `ParIterable` ,`ParSet` , `ParSeq` and `ParMap[K,V]` the parallel counterparts of `Iterable` , `Sequence` , `Set` and `Map`. 
+
+`Interable[T]` : collection of elements operations implemented using `interator`. 
+
+![image-20230316095700764](assets/image-20230316095700764.png)
+
+Collections prefixed with `Gen` are super classes of normal collections , it helps to write code that is unware of parallelization. 
+
+```scala
+def largestPalindrome(xs: GenSeq[Int]): Int = {
+xs.aggregate(Int.MinValue)(
+(largest, n) =>
+if (n > largest && n.toString == n.toString.reverse) n else 	largest,
+    math.max)
+}
+val array = (0 until 1000000).toArray
+largestPalindrome(array) // works 
+largestPalindrome(array.par) // works too and is parallized
+```
+
+add `.par`to make the collection parallel eg : `a.par` 
+
+![image-20230316100113028](assets/image-20230316100113028.png)
+
+but `list.par` returns `ParVector[]` => converts to closes parallel collection 
+
+**Side effecting operations **
+
+```scala
+def intersection(a: GenSet[Int], b: GenSet[Int]): Set[Int] = {
+    val result = mutable.Set[Int]()
+    for (x <- a) if (b contains x) result += x
+    result
+}
+intersection((0 until 1000).toSet, (0 until 1000 by 4).toSet)
+
+intersection((0 until 1000).par.toSet, (0 until 1000 by 4).par.toSet)
+// DOES NOT WORK , DIFFERENT PROCESS MODIFIE RESULT 
+```
+
+> **RULE : **Avoid mutations to the same memory location without proper synchronization
+
+Solutions :
+
+```scala
+// 1. OBSCURE CONCURRENCY LIBRARY 
+import java.util.concurrent._
+def intersection(a: GenSet[Int], b: GenSet[Int]) = {
+	val result = new ConcurrentSkipListSet[Int]()
+	for (x <- a) if (b contains x) result += x
+	result
+}
+
+// 2. NO SIDE EFFECTS : FUNCTIONAL 
+def intersection(a: GenSet[Int], b: GenSet[Int]): GenSet[Int] = {
+	if (a.size < b.size) a.filter(b(_))
+	else b.filter(a(_))
+}
+```
+
+**Modification during traversal**
+
+```scala
+val graph = mutable.Map[Int, Int]() ++= (0 until 100000).map(i => (i, i + 1))
+graph(graph.size - 1) = 0
+for ((k, v) <- graph.par) graph(k) = graph(v)
+val violation = graph.find({ case (i, v) => v != (i + 2) % graph.size })
+// DOES NOT WORK 
+// 1. WE CHANGE graph while traversing it 
+// 2. WE READ SOME VALUES FROM graph THAT are currently being modified by other process
+
+```
+
+This is a solution 
+
+````scala
+val graph =
+concurrent.TrieMap[Int, Int]() ++= (0 until 100000).map(i => (i, i + 1))
+graph(graph.size - 1) = 0
+val previous = graph.snapshot()
+for ((k, v) <- graph.par) graph(k) = previous(v)
+val violation = graph.find({ case (i, v) => v != (i + 2) % graph.size })
+println(sŏviolation: $violationŏ)
+````
+
+a snapshot saves that specific version of the data structure. 
+
+It is done is $O(1)$  time ! 
+
+#### Splitters 
+
+```scala
+trait Splitter[A] extends Iterator[A] {
+    def split: Seq[Splitter[A]]
+	def remaining: Int
+}
+def splitter: Splitter[A] // on every parallel collection
+```
+
+
+
+![image-20230316100943597](assets/image-20230316100943597.png)
+
+`fold` on `Splitter`: 
+
+```scala
+def fold(z:A)(f:(A,A) => A): A = {
+    if (remaining < threshhold ) foldLeft(z)(f)
+    else{
+        val children = for (child <- split) yield task {child.fold(z)(f) }
+		children.map(_.join()).foldLeft(z)(f)
+    }
+}
+```
+
+#### Builder
+
+ ```scala
+ trait Builder[A, Repr] {
+     def +=(elem: A): Builder[A, Repr]
+     def result: Repr
+ }
+ def newBuilder: Builder[A, Repr] // on every collection
+ ```
+
+![image-20230316101305658](assets/image-20230316101305658.png)
+
+```scala
+def filter(p: T => Boolean): Repr = {
+    val b = newBuilder
+    for (x <- this) if (p(x)) b += x
+	b.result
+}
+```
+
+### Combiner : 
+
+Like builder but in arbitrary order and in parallel 
+
+```scala
+trait Combiner[A, Repr] extends Builder[A, Repr] {
+	def combine(that: Combiner[A, Repr]): Combiner[A, Repr]
+}
+def newCombiner: Combiner[T, Repr] // on every parallel collection
 ```
 
