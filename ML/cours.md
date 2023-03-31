@@ -637,7 +637,7 @@ $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}
 
 Non linear SVM :
 
- $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{{\color{red} \phi(x)_n}})\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
+ $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{{ \color{red} {\phi(x)_n}}})\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
 
 
 
