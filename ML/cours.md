@@ -395,7 +395,11 @@ And... that is a problem because :
 
 We want to be less close from points ( image a diagonal line )
 
-### Binary classification with regressions  
+### Binary classification with linear regression 
+
+Labels to predict are $0$ or $1$. 
+
+**Step 1 : Predict value between 0 and 1 with regression **
 
 The point where the predicted label changes from 0 to 1 forms a **decision boundary** . 
 
@@ -416,7 +420,7 @@ in the second picture :
 * the blue plane represents $y=0.5$ . 
 * the green line is the intersection between $y=0.5$ and the linear model. 
 
-**Adding non linearity **
+**Step2 : Converting continous output to linear**
 
 * The output of the linear model is a continuous value * 
 
@@ -432,12 +436,17 @@ in the second picture :
 
     ​							<img src="assets\image-20230211142123766.png" alt="image-20230211142123766" style="zoom:40%;" />
 
-    
-
     **sigmoid** is amazing because :
 
     1. infinitely differentiable
     2. derivate easy to compute : $\frac{\partial\sigma}{\partial a}=\sigma(1-\sigma)$ 
+  
+  
+  
+  ### Logistic regression
+  
+  1. Choose function to minimize.
+  2. Find weights that minimize it using gradient descent.
   
   * likelihood of elements being well labeled $\begin{aligned}p(\textbf{y}\:|\:\textbf{w})=\prod\limits_{i=1}^N\hat{y}_i^{y_i}\cdot(1-\hat{y}_i)^{1-y_i}\end{aligned}$
   
@@ -513,7 +522,7 @@ In the real world , that is never the case
 
 <img src="assets/image-20230321085427813.png" alt="image-20230321085427813" style="zoom:50%;" />
 
-#### Slack variables 
+#### SVM and Slack variables 
 
 $t_n\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_n)\geq1\,$ is a strict constraint let's relax it $t_{n}\cdot(\tilde{\mathbf{w}}\cdot\mathbf{x}_{n})\geq1-\xi_{n}.$ 
 
@@ -573,3 +582,62 @@ Algorithm
 ---
 
 **Important : ** Classifiers $y_t$ should behave better than random. 
+
+###  Feature expansion :
+
+We are always investing classification of non linearly seperable data : 
+
+​         
+
+1. **1-Dimension** :<img src="assets/image-20230328082653391.png" alt="image-20230328082653391" style="zoom: 50%;" />
+
+   We can use the following mapping : $x\rightarrow\phi(x)=\begin{bmatrix}x\\ x^2\end{bmatrix}\text{}$ to map to 2-dimensions
+
+   <img src="assets/image-20230328083125955.png" alt="image-20230328083125955" style="zoom:50%;" />
+
+   We see that the result of this mapping is *linearly seperable* 
+
+2. **2-Dimension** : 
+   same thing from 2d to 3d 
+   <img src="assets/image-20230328083631378.png" alt="image-20230328083631378" style="zoom: 33%;" /> becomes       <img src="assets/image-20230328083918660.png" alt="image-20230328083918660" style="zoom: 33%;" />
+
+after applying $\textbf{x}=\begin{bmatrix}x_1\\ x_2\end{bmatrix}\to\phi(\textbf{x})=\begin{bmatrix}x_1\\ x_2\\ x_1^2+x_2^2\end{bmatrix}$ 
+
+3. **Polynomial approximation**
+   Another case where we can have better result by expanding our data to a higher dimension is polynomial approximation : 
+
+   We cannot nicely approximate the following curve with a line but if we choose a degree 3 polynomial, it becomes possible. 
+
+   <img src="assets/image-20230328084304259.png" alt="image-20230328084304259" style="zoom:50%;" />
+
+   
+
+   Fitting our data $(x_n,t_n)$ with polynomial of weights $w_i$ 
+
+   1. expand our data $x\to\phi(x)=\begin{bmatrix}1\\ x\\ x^2\\ \vdots\\ x^M\end{bmatrix}$   
+   2. Approximate using least squares $\begin{aligned}\mathbf{w}*=\text{argmin}_{\mathbf{w}}\sum_n\left(t_n-\mathbf{w}^T\phi(x_n)\right)^2\end{aligned}$ 
+   3. Solution : $(\Phi^{T}\Phi)_{_{M\times M}}\textbf{w}^{*}=\Phi^{T}\textbf{t}_{_{M\times1}}$ 
+
+   **Regularization** 
+
+   We want to prevent to following quick variations 
+
+   <img src="assets/image-20230328090120492.png" alt="image-20230328090120492" style="zoom:40%;" />
+
+   To do so , we penalize high weights : $\mathbf{w}^*=\underset{\mathbf{w}}{\arg\min}\|\Phi\mathbf{w}-\mathbf{t}\|^2+\dfrac{\lambda}{2}\|\mathbf{w}\|^2\quad$ 
+
+   * This is known as weight decay because in iterative algorithms it encourages the weight values to decay to zero, unless supported by the data
+   * $\lambda$ will be chosen with cross validation 
+
+Let's use this to create **non linear** boundaries : 
+
+Recall normal SVM : 
+
+$\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{x}_n)\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$  <img src="assets/image-20230328092446477.png" alt="image-20230328092446477" style="zoom:30%;" />
+
+Non linear SVM :
+
+ $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{{\color{red} \phi(x)_n}})\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
+
+
+

@@ -616,7 +616,7 @@ Regarder les slides(4) pour des exemples typiques le lecture / écriture.
 
 **Repositionner la tête de lecture**: `fseek` , `ftell` , `rewind`, `ferror` et `clearerr`
 
-### W5-Pointeurs
+## W5-Pointeurs
 
 Pourquoi les pointeurs ? 
 
@@ -659,3 +659,130 @@ Un pointeur c'est comme la page d'un carnet d'adresse
   ```
 
 * *allouer un pointeur p :* aller construire une maison quelque part et noter son adresse sur la page p (mais p n'est pas la maison, c'est juste la page qui contient l’adresse de cette maison !)
+
+**Le contenu de cette semaine n'est pas fini.** 
+
+## W6-Allocation dynamique 
+
+Il y'a 2 façons de déclarer des variables :
+
+1. déclarer des variables. 
+2. allouer dynamiquement de la mémoire pendant l'exécution d'un programme. 
+
+<img src="assets/image-20230327082210894.png" alt="image-20230327082210894" style="zoom:50%;" />
+
+Les variables sont stockés dans la pile (**stack**) : que quelques Mo. 
+
+Tout ce qui est alloué dynamiquement est dans le **tas**. 
+
+### malloc et calloc 
+
+* `pointeur = malloc(taille);`
+
+  réserve une zone mémoire de taille `taille` et met l'adresse correspondante dans `pointeur`. 
+
+  Pour aider à spécifier la taille , on peut utiliser : `sizeof`
+
+* `pointeur =  calloc(size_t nb_elements, size_t taille_element) ` 
+
+  allouer de la mémoire consécutive pour plusieurs variables de même type (typiquement un tableau, dynamique), on préfèrera `calloc` à 
+
+  `void* calloc(size_t nb_elements, size_t taille_element)`;
+
+  Par exemple pour allouer de la place pour 3 double consécutifs :
+
+   `pointeur = calloc(3, sizeof(double));`
+
+* **Différences** entre `calloc` et `malloc` : Préférer **toujours** `calloc` à `p = malloc(n * sizeof(Type))` 
+
+  * ⚠️ `p = malloc(n * sizeof(Type))`  peut engendrer un **overflow** sur la multiplication
+
+  * calloc` initialise à 0 (le contenu de) la zone allouée contrairement à `malloc`
+
+    ​	**toujours** initialiser quand on utilise `malloc` 
+
+    ​	On peut utiliser ` memset(ptr, 255, sizeof(*ptr));`
+
+* `free(pointeur)` : libère la zone mémoire pour qu'elle puisse être utilisée pour autre chose . 
+
+  * Mais le pointeur pointe toujours vers cette zone mémoire ,⚠️ **il ne faut pas utiliser ce pointeur** :  pour cela : 
+
+    > Un `free(pointeur)` doit toujours être précédé par `pointeur = NULL` 
+
+* > **Règle absolue :** Toute zone mémoire allouée par un `[cm]alloc` doit impérativement être libérée par un `free` correspondant !
+
+
+
+**Vérification d'une Allocation correcte**
+
+Les fonctions `malloc` et `calloc` retournent `NULL` si l'allocation n'a pas pu avoir lieu.
+
+```C
+pointeur = calloc(nombre, sizeof(type));
+if (pointeur == NULL) {
+/* ... gestion de l’erreur ... */
+/* ... et sortie (return code d’erreur) */
+}
+/* suite normale */
+
+```
+
+### Tableau dynamique 
+
+```C
+vector* vector_construct(vector* v) {
+if (v != NULL) {
+    vector result = { 0, 0, NULL };
+    result.content = calloc(VECTOR_PADDING, sizeof(type_el));
+    if (result.content != NULL) {
+    result.allocated = VECTOR_PADDING;
+    } else {
+    // retourne NULL si on n'a pas pu allouer la mémoire nécessaire
+    return NULL;
+    }
+    // écriture atomique
+	*v = result;
+}
+return v }
+```
+
+⚠️  OFFRIR UNE FONCTION POUR `free`
+
+```C
+void vector_delete(vector* v) {
+    if ((v != NULL) && (v->content != NULL)) {
+    free(v->content);
+    v->content = NULL;
+    v->size = 0;
+    v->allocated = 0;
+    }
+}
+
+```
+
+ Utilisation de `realloc`   pour agrandir le tableau ⚠️ ne jamais `faireptr = realloc(ptr,...)`
+
+```C
+vector* vector_enlarge(vector* v) {
+if (v != NULL) {
+    vector result = *v;
+    result.allocated += VECTOR_PADDING;
+    if ((result.allocated > SIZE_MAX / sizeof(type_el)) ||
+    ((result.content = realloc(result.content,
+    result.allocated * sizeof(type_el)))
+    == NULL)) {
+    return NULL; /* retourne NULL en cas d'échec ;
+    * v n'a pas été modifié. */
+    }
+    // affectation finale, tout d'un coup
+    *v = result;
+    // SI IL Y'A UNE ERROR v RESTE INTACT 
+    }
+    return v;
+}
+```
+
+*  ⚠️` (result.allocated > SIZE_MAX / sizeof(type_el))` et pas
+   `(result.allocated * sizeof(type_el)> SIZE_MAX)` cette dernier peut OVERFLOW
+
+  

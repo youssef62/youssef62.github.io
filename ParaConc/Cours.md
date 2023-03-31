@@ -454,7 +454,8 @@ Note that the time complexity is $O(h)$  , $h$ being the height of the tree.
 #### Fold operations : 
 
 ````scala
-List(1,3,8).fold(100)((s,x) => s + x) == 112
+List(1,3,8).fold(100)((s,x) => s + x) == 112 
+// the difference between fold and foldLeft/foldRight is that the order of the operations is non deterministic for fold , therefore f must be associative
 List(1,3,8).foldLeft(100)((s,x) => s - x) == ((100 - 1) - 3) - 8 == 88
 List(1,3,8).foldRight(100)((s,x) => s - x) == 1 - (3 - (8-100)) == -94
 List(1,3,8).reduceLeft((s,x) => s - x) == (1 - 3) - 8 == -10
@@ -463,7 +464,7 @@ List(1,3,8).reduceRight((s,x) => s - x) == 1 - (3 - 8) == 6
 
 When we are working in parallel we want to be able to *choose* the order of our operations . 
 
-The reason for that is that instead of doing the usual fold operations that look like this : 
+The reason for that is that instead of doing the usual `foldRight\Left` operations that look like this : 
 
 <img src="assets/image-20230305150455373.png" alt="image-20230305150455373" style="zoom:50%;" />
 
@@ -756,7 +757,7 @@ a snapshot saves that specific version of the data structure.
 
 It is done is $O(1)$  time ! 
 
-#### Splitters 
+#### Splitters  
 
 ```scala
 trait Splitter[A] extends Iterator[A] {
@@ -811,5 +812,639 @@ trait Combiner[A, Repr] extends Builder[A, Repr] {
 	def combine(that: Combiner[A, Repr]): Combiner[A, Repr]
 }
 def newCombiner: Combiner[T, Repr] // on every parallel collection
+```
+
+## Week4 : Data-structures for efficient combining 
+
+Let's remember the `combiner` trait that extends the `Builder` trait : 
+
+```scala
+trait Builder[T, Repr] {
+    def +=(elem: T): this.type
+	def result: Repr
+}
+
+trait Combiner[T, Repr] extends Builder[T, Repr] {
+	def combine(that: Combiner[T, Repr]): Combiner[T, Repr]
+}
+```
+
+The meaning of the combine depends on the type of `Repr` :                                                              
+
+​                        <img src="assets/image-20230324155842766.png" alt="image-20230324155842766" style="zoom: 25%;" />     <img src="assets/image-20230324155921258.png" alt="image-20230324155921258" style="zoom:40%;" />
+
+​						case of `Set` or `Map` : union            case of `Array` : concatenation
+
+Why is it useful ? efficient data parallel computing : example
+
+```scala
+def filter(start : Int , end : Int , A : Array[Int] , threshold :Int ) : Array[Int]= 	
+	def filter_com((start : Int , end : Int ) : Combiner[Int,Array] =
+		if( end - start < threshold ) then // solve sequentially 
+        else 
+            val mid = (start+end)/2 
+			val left = filter_com(start,mid)
+            val right = filter_com(mid,end)
+            left.combine(right)
+	
+	filter_com(start,end).result 
+```
+
+How to implement a combiner ? 
+
+**Naïve way :** Very bad $O(n+m)$ where $n,m$ are the sizes of `n` and `m` respectively
+
+Example on an array : 
+
+```scala
+def combine(xs: Array[Int], ys: Array[Int]): Array[Int] = {
+	val r = new Array[Int](xs.length + ys.length)
+	Array.copy(xs, 0, r, 0, xs.length)
+	Array.copy(ys, 0, r, xs.length, ys.length)
+	r
+}
+```
+
+Why is that bad ? 
+
+Imagine we implement parallel `filter` using a  $O(n+m)$ time `combine` we would get worse running times than the simple iteration linear `filter` : 
+
+<img src="assets/image-20230324160601670.png" alt="image-20230324160601670" style="zoom:30%;" />
+
+**We want better running times ** i.e $O(log(n)+log(m))$ running times for `combine`
+
+### Two phase construction 
+
+We will use an intermediate data structure that we will convert to our final (wanted) data structure at the end. 
+
+The intermediate data structure must have : 
+
+*  $O(log(n)+log(m))$ `combine` or better
+* efficient `+= ` method 
+* can be converted to our desired data structe in $O(n/p)$ where $p$ is the number of processors. 
+
+Example on arrays 
+
+```scala
+class ArrayCombiner[T <: AnyRef: ClassTag](val parallelism: Int) {
+    private var numElems = 0
+    private val buffers = new ArrayBuffer[ArrayBuffer[T]]
+    buffers += new ArrayBuffer[T]
+```
+
+
+
+<img src="assets/image-20230324162107667.png" alt="image-20230324162107667" style="zoom: 50%;" />
+
+```scala
+def +=(x: T) = {
+    buffers.last += x
+    numElems += 1
+	this
+}
+```
+
+We add a new element to the last `ArrayBuffer` in our array of `ArrayBuffers` , this is done in $O(1)$ time. 
+
+```scala
+def combine(that: ArrayCombiner[T]) = {
+	buffers ++= that.buffers
+	numElems += that.numElems
+	this
+}
+```
+
+Combining is just appending (the reference of ) buffers . ( concatenation will happen on the buffer level ) . Given that we will have one `Combiner` working per processor that size of `buffers` will never have more than $p$ `ArrayBuffer`. 
+
+So concatenation will take $O(p)$ time.
+
+```scala
+def result: Array[T] = {
+    val array = new Array[T](numElems)
+    // PARTITION INDICES IN 
+    val step = math.max(1, numElems / parallelism)
+    val starts = (0 until numElems by step) :+ numElems
+    val chunks = starts.zip(starts.tail)
+    	
+    val tasks = for ((from, end) <- chunks) yield task {
+    copyTo(array, from, end)  // COPIES FROM THE BUFFERS 
+    }
+    tasks.foreach(_.join())
+    ar
+```
+
+Two steps : 
+
+1. partition indices 
+2. copy the combiners elements into the array in parallel 
+
+For `maps`: 
+
+1. Partition the hash codes into buckets 
+2. Element from different buckets will be in different region of the final table, therefore we can fill the table in parallel. 
+
+<img src="assets/image-20230324164826661.png" alt="image-20230324164826661" style="zoom:30%;" />
+
+### ConcTree
+
+ConcTree is a data structure that accepts efficient concatenation 
+
+> Trees are only good for parallelism when they are balanced. Otherwise we cannot balance the workload equally between processors. 
+
+So ConcTree will be balanced : 
+
+```scala
+sealed trait Conc[+T] {
+    def level: Int
+    def size: Int
+    def left: Conc[T]
+	def right: Conc[T]
+}
+
+case object Empty extends Conc[Nothing] {
+	def level = 0
+	def size = 0
+}
+class Single[T](val x: T) extends Conc[T] {
+	def level = 0
+	def size = 1
+}
+// <> is a confusing name for node 
+case class <>[T](left: Conc[T], right: Conc[T]) extends Conc[T] {
+    val level = 1 + math.max(left.level, right.level)
+	val size = left.size + right.size
+}
+
+```
+
+**Properties of ConcTree**
+
+1. A node `<> ` cannot contain an empty subtree. 
+2. The `level` difference between the left and right subtree of a node `<>` is at most 1. 
+
+```scala
+def <>(that: Conc[T]): Conc[T] = { // CONSTRUCTOR OF <> 
+    if (this == Empty) that
+    else if (that == Empty) this
+    else concat(this, that)			// "merge" them and return root  
+}
+```
+
+​	**The challenge : **Concatenation  
+
+1. if the have ~ same level ( +- 1 ) : merge 
+
+2. Let's assume (WLOG because we can swap them ) that the left is bigger : 
+
+   1. Case left is itself left leaning
+
+      ```scala
+      if (xs.left.level >= xs.right.level) {
+      	val nr = concat(xs.right, ys)
+      	new <>(xs.left, nr)
+      }
+      ```
+
+   <img src="assets/image-20230324165750930.png" alt="image-20230324165750930" style="zoom:50%;" />
+
+   b. Case the right is right leaning : then there 4 subtrees at play 
+   
+   link the two smallest first (  like the Huffman code )
+
+<img src="assets/image-20230324170041935.png" alt="image-20230324170041935" style="zoom:50%;" />
+
+```scala
+} else {
+    val nrr = concat(xs.right.right, ys)
+    if (nrr.level == xs.level - 3) {
+        val nl = xs.left
+        val nr = new <>(xs.right.left, nrr)
+        new <>(nl, nr)
+    } else {
+        val nl = new <>(xs.left, xs.right.left)
+        val nr = nrr
+        new <>(nl, nr)
+    }
+}
+```
+
+It takes $O(h_1-h_2)$ time where $h_1,h_2$ are the heights 
+
+### Append in amortized constant time 
+
+very simple append : 
+
+```scala
+var xs: Conc[T] = Empty
+	def +=(elem: T) {
+	xs = xs <> Single(elem)
+}
+```
+
+this works in $O(log(n))$ time. 
+
+Can we do better ? Yes. 
+
+The idea is to store our append requests in an intelligent way in our tree. 
+
+```scala
+case class Append[T](left: Conc[T], right: Conc[T]) extends Conc[T] {
+	val level = 1 + math.max(left.level, right.level)
+	val size = left.size + right.size
+}
+```
+
+suppose we do this 
+
+```scala
+def appendLeaf[T](xs: Conc[T], y: T): Conc[T] = Append(xs, new Single(y))
+```
+
+It will make the tree unbalanced 
+
+<img src="assets/image-20230330144140802.png" alt="image-20230330144140802" style="zoom:50%;" />
+
+We will do not do that. Our technique will ensure that the number of `Append` nodes does not exceed $log(n)$. 
+
+the `Append` nodes are not balanced as `Conc`nodes but they satisfy these invariants : 
+
+* the right subtree of an `Append` node is never another `Append` node. (we only append to the left)
+* if an Append node a has another Append node b as the left child, then a.right.level < b.right.level.
+
+```scala
+def appendLeaf[T](xs: Conc[T], ys: Single[T]): Conc[T] = xs match {
+case Empty => ys
+case xs: Single[T] => new <>(xs, ys)
+case _ <> _ => new Append(xs, ys)
+case xs: Append[T] => append(xs, ys)
+}
+
+
+@tailrec private def append[T](xs: Append[T], ys: Conc[T]): Conc[T] = {
+    if (xs.right.level > ys.level) new Append(xs, ys) // verify append invariant
+    else {
+    val zs = new <>(xs.right, ys)
+    //       xs 				ys 
+    // 	  / 		\          big subtree
+    //   xs.left   xs.right 
+        
+    // 		<>
+    // 	 / 		\              xs.left = ws 
+    // xs.right		ys
+     // 	      big subtree
+    xs.left match { // these violate append invariant
+        case ws @ Append(_, _) => append(ws, zs) // assure invariant
+        case ws if ws.level <= zs.level => ws <> zs // violate append invariant 
+        // making right side bigger , trying to balance . 
+        case ws => new Append(ws, zs)  // ws.level >= zs.level 
+        // invariant verified 
+   		}
+    }
+}
+```
+
+
+
+
+
+#### Chuck nodes 
+
+Like `Single` nodes but hold multiple elements. `ConcBuffer` adds all added elements to a buffer and pushes them once they exceed a certain threshold. 
+
+````scala
+class ConcBuffer[T: ClassTag](val k: Int, private var conc: Conc[T]) {
+private var chunk: Array[T] = new Array(k) // buffer to group elements and push them in one time 
+private var chunkSize: Int = 0
+````
+
+When we add 
+
+```scala
+final def +=(elem: T): Unit = {
+    if (chunkSize >= k) expand() // if full add it to tree 
+    chunk(chunkSize) = elem
+    chunkSize += 1
+}
+private def expand() {
+	conc = appendLeaf(conc, new Chunk(chunk, chunkSize))
+	chunk = new Array(k)	
+	chunkSize = 0
+}
+
+final def combine(that: ConcBuffer[T]): ConcBuffer[T] = {
+	val combinedConc = this.result <> that.result
+	new ConcBuffer(k, combinedConc)
+}
+
+def result: Conc[T] = {
+conc = appendLeaf(conc, new Chunk(chunk, chunkSize))
+conc
+}
+```
+
+
+
+
+
+
+
+# Concurrency
+
+**Concurrency : ** concurrent computing consists of process *lifetimes* overlapping, but execution need not happen at the same instant.( process 1 then process 2 then process 1 again ... )
+
+## Week 5:
+
+<img src="assets/image-20230330102126806.png" alt="image-20230330102126806" style="zoom:50%;" />
+
+The OS schedules **threads** to run on **cores**.
+
+ ```scala
+ def thread(b: => Unit) = {
+     val t = new Thread {
+     	override def run() = b
+     }
+     t.start()
+     t
+ }
+ ```
+
+To start a thread on scala: 
+
+1. inherit from `java.lang.Thread` and redefine the `run` method 
+2. create an instance of the class 
+3. run it using `.start`
+
+The call `t.join()` lets the calling thread wait until thread `t` has terminated.
+
+First example : 
+
+```scala
+val t = thread { println(s”New thread running”) }
+t.join()
+println(s”New thread joined”)
+```
+
+<img src="assets/image-20230330102556737.png" alt="image-20230330102556737" style="zoom: 40%;" />
+
+**Non-deterministic behavior : **
+
+```scala
+val t = thread {
+println(”New thread running”)
+}
+println(”...”)
+println(”...”)
+t.join()  					
+println(”New thread joined”)
+```
+
+Sometimes "New threadrunning , .... ,.... " is printed , other times "....,New threadrunning,...." is printed. 
+
+Instructions are *interleaved* this makes a lot of valid sequential programs invalid with concurrency. 
+
+Consider the following piece of code that returns a unique id. 
+
+```scala
+object ThreadsGetUID extends App {
+    var uidCount = 0
+    def getUniqueId() = {
+        val freshUID = uidCount + 1
+        uidCount = freshUID
+        freshUID
+	}
+}					    
+```
+
+we test it *concurrently* with : 
+
+```scala
+// test it with : 
+def printUniqueIds(n: Int): Unit = {
+	val uids = for (i <- 0 until n) yield getUniqueId()
+	println(s”Generated uids: $uids”)
+}
+
+val t = thread { printUniqueIds(5) } // one call on seperate thread 
+printUniqueIds(5)					// one call on the main thread 
+t.join()
+
+//> ThreadsGetUID // first run of the code 
+//[53:thread] Generated uids: Vector(2, 5, 7, 9, 10)
+//[1:main] Generated uids: Vector(1, 3, 4, 6, 8)
+
+//> ThreadsGetUID // second run of the code 
+//[1:main] Generated uids: Vector(1, 2, 3, 4, 5)
+//[55:thread] Generated uids: Vector(5, 6, 7, 8, 9) // 5 is repeated 
+```
+
+1. non-deterministic behavior 
+
+2. Ids are not unique. 
+
+   <img src="assets/image-20230330104929438.png" alt="image-20230330104929438" style="zoom:50%;" />
+
+### Synchronization and Atomic execution 
+
+The problem above is that we use a shared variable `uidCount` that is *not synchronized* properly.
+
+We want to the instructions of `getUniqueId` to be run sequentially without interleaving with another thread. That's what we call **atomic execution**. To do that : 
+
+```scala
+object GetUID:
+	var uidCount = 0
+    def getUniqueId() = synchronized {
+        val freshUID = uidCount + 1
+        uidCount = freshUID
+        freshUID
+	}
+```
+
+It means that only one thread can run the block inside `synchronized` at at time. 
+
+<img src="assets/image-20230330110618264.png" alt="image-20230330110618264" style="zoom:50%;" />
+
+Two possible syntax : 
+
+* `synchronized{block}`
+
+* `obj.synchronized{block}`  where `obj` is a an instance of `anyRef`
+  * this one puts a lock on `obj` : any thread that wants to use it should wait until the thread that has the lock on it is done. 
+
+
+
+#### Ledger example
+
+```scala
+object Ledger:
+import scala.collection._
+private val transfers = mutable.ArrayBuffer[String]()
+    def logTransfer(name: String, n: Int) = transfers.synchronized {
+		transfers += s"transfer to account $name = $n"
+	}// notice that synchronized here is necessary 
+	def getlog = transfers
+
+class Account(val name: String, var initialBalance: Int):
+    private var myBalance = initialBalance
+    private var uid = getUID
+    def balance: Int = this.synchronized { myBalance } // synchronized here is optional 
+
+    def add(n: Int): Unit = this.synchronized {
+        myBalance += n
+        // Log only if more than 10 CHF is transferred
+        if n > 10 then logTransfer(name, n)
+	}
+```
+
+#### Deadlock  
+
+Let's make a function to transfer money 
+
+```scala
+def transfer(from: Account, to: Account, n: Int) =
+    from.synchronized {
+        to.synchronized {
+            from.add(-n)
+            to.add(n)
+        }
+	}
+```
+
+suppose we launch the following program : 
+
+```scala
+val jane = new Account("Jane", 1000)
+val john = new Account("John", 2000)
+log("started...")
+val t1 = thread { for i <- 0 until 100 do transfer(jane, john, 1) }
+val t2 = thread { for i <- 0 until 100 do transfer(john, jane, 1) }
+```
+
+1. `t1` locks `jane` and `t2` locks `john` 
+2.  `t1` tries to lock `john` but cannot because `t2` has it so it waits
+3. `t2` tries to lock `jane` but cannot because `t1` has it so it waits 
+
+**Solution : ** **One approach is to always acquire resources in the same order**
+
+````scala
+def transfer(from: Account, to: Account, n: Int) =
+    def adjust() { to.add(n); from.add(-n) }
+    if from.getUID < to.getUID then
+    	from.synchronized { to.synchronized { adjust() } }
+    else
+    	to.synchronized { from.synchronized { adjust() } }
+````
+
+Another deadlock example : 
+
+```scala
+val obj = AnyRef
+obj.synchronized {
+    println("Reached A")
+    thread {
+        println("Reached B")
+        obj.synchronized {
+        	println("Reached C")
+        }
+    }.join
+    println("Reached D")
+}
+```
+
+This will not halt. 
+
+<img src="assets/image-20230330115209799.png" alt="image-20230330115209799" style="zoom:50%;" />
+
+```scala
+// one solution 
+val lock = AnyRef
+lock.synchronized {
+println("Reached A")
+}
+thread {
+    println("Reached B")
+    lock.synchronized {
+    	println("Reached C")
+    }
+}.join
+println("Reached D")
+```
+
+#### Classical example
+
+When using a one place buffer. We distinguish two thread roles :
+
+1. consumers : take element from buffer 
+
+   if thread is empty consumers must wait 
+
+2. producers : put elements in buffer 
+
+   if thread is full producers have to wait 
+
+3. at most one element can be in the buffer at any one time
+
+```scala
+def put(e: Elem) = synchronized {
+    while bufferIsFull do {}
+        putElementInTheBuffer(e)
+        bufferIsFull = true
+    }
+def get(): Elem = synchronized {
+    while !bufferIsFull do {}
+        elem = getElementFromTheBuffer()
+        bufferIsFull = false
+        elem
+    }
+// DEAD LOCK SITUATION 
+```
+
+Solution: Hold the lock for a short duration and release it after checking the buffer is full (for producers) empty (for consumers). Repeat the operation without always holding the lock. 
+
+```scala
+// SOLUTION 
+class TempObj[Elem]:
+    var e:Elem = uninitialized
+    class OnePlaceBuffer[Elem]:
+    private var elem: Elem = uninitialized
+    private var bufferIsFull: Boolean = false
+    
+	def put(e: Elem) =
+        while !tryToPut(e) do {}
+        def tryToPut(e: Elem): Boolean = this.synchronized {
+        	if bufferIsFull then false
+        	else { elem = e; bufferIsFull = true; true }
+        }
+    def get(): Elem =
+        var temp = new TempObj[Elem]
+        var bufferIsEmpty: Boolean = true
+        while bufferIsEmpty do
+            this.synchronized {
+                if bufferIsFull then
+                bufferIsFull = false; temp.e = elem; bufferIsEmpty = false
+            }
+        return temp.e
+
+```
+
+#### the example of the dining philosophers 
+
+There are N philosphers sitting around a circular table eating spaghetti and discussing philosphy. The problem is that each philosopher needs 2 forks to eat, and there are only N forks, one between each 2 philosophers
+
+<img src="assets/image-20230330120148007.png" alt="image-20230330120148007" style="zoom:70%;" />
+
+```scala
+def philosophersDining(n: Int) =
+    val forks = new Array[Fork](n)
+    val philosophers = new Array[Thread](n)
+    val waiter = new Waiter
+    for p <- 0 to n - 1 do
+    	forks(p) = new Fork()
+    for p <- 0 to n-1 do
+    	philosophers(p) = thread{
+    		while (!philosopherTurn(w, forks(p%n), forks((p+1)%n))) {}
+    	}
+    for p <- 0 to n - 1 do
+	philosophers(p).join()
+
 ```
 
