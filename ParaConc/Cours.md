@@ -814,6 +814,10 @@ trait Combiner[A, Repr] extends Builder[A, Repr] {
 def newCombiner: Combiner[T, Repr] // on every parallel collection
 ```
 
+![image-20230331173000684](assets/image-20230331173000684.png)
+
+* `result` **must be parallelizable** 
+
 ## Week4 : Data-structures for efficient combining 
 
 Let's remember the `combiner` trait that extends the `Builder` trait : 
@@ -914,7 +918,7 @@ def combine(that: ArrayCombiner[T]) = {
 }
 ```
 
-Combining is just appending (the reference of ) buffers . ( concatenation will happen on the buffer level ) . Given that we will have one `Combiner` working per processor that size of `buffers` will never have more than $p$ `ArrayBuffer`. 
+Combining is just appending (the reference of ) buffers . ( concatenation will happen on the buffer level ) . Given that we will have one `Combiner` working per processor that size of `buffers` will never have more than $p$ `ArrayBuffer`s. 
 
 So concatenation will take $O(p)$ time.
 
@@ -1446,5 +1450,22 @@ def philosophersDining(n: Int) =
     for p <- 0 to n - 1 do
 	philosophers(p).join()
 
+def philosopherTurn(w: Waiter, left: Fork, right: Fork): Boolean =
+    Thread.sleep(100) // wait for some time
+    w.synchronized {
+        if !left.inUse && !right.inUse then
+            left.inUse = true
+            right.inUse = true
+        }
+        else
+            false
+    }
+    Thread.sleep(1000) // eating
+    w.synchronized {
+        left.inUse = false
+        right.inUse = false
+    }
+	
+	true
 ```
 
