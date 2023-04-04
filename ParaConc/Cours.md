@@ -666,6 +666,24 @@ Do the `foldingLeft`  with `f`and then combine them with `g`
 
 <img src="assets/image-20230316095153645.png" alt="image-20230316095153645" style="zoom:50%;" />
 
+It is important to note that `aggregate` splits the input arbitrarily : 
+
+`xs.aggregate(z)(f, g)`might result in `g(f(z, x1), f(f(z, x2), x3))` or
+
+ `g(f(f(z, x1), x2), f(z, x3))`. 
+
+When does `aggregate` always give the same results ? 
+
+* **split invariance : **
+  ` g( xs.foldLeft(z)(f) ,ys.foldLeft(z)(f) ) == (xs ++ ys).foldLeft(z)(f) for all xs,ys`
+
+  it implies correctness of agregate.
+
+* The following two properties imply split invariance : 
+
+  1. `g(f(x,y),u) = g(x,f(y,z))  for all x,y,u               (g-f-associative)`
+  2. `g(z,x ) = x 									        (g-right-unit)`
+
 ### Scala parallel collections 
 
 There exists traits `ParIterable` ,`ParSet` , `ParSeq` and `ParMap[K,V]` the parallel counterparts of `Iterable` , `Sequence` , `Set` and `Map`. 

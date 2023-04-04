@@ -677,13 +677,17 @@ Tout ce qui est alloué dynamiquement est dans le **tas**.
 
 ### malloc et calloc 
 
-* `pointeur = malloc(taille);`
+* **malloc**
+  `pointeur = malloc(taille);`
 
   réserve une zone mémoire de taille `taille` et met l'adresse correspondante dans `pointeur`. 
 
   Pour aider à spécifier la taille , on peut utiliser : `sizeof`
 
-* `pointeur =  calloc(size_t nb_elements, size_t taille_element) ` 
+  
+
+* **calloc**
+  `pointeur =  calloc(size_t nb_elements, size_t taille_element) ` 
 
   allouer de la mémoire consécutive pour plusieurs variables de même type (typiquement un tableau, dynamique), on préfèrera `calloc` à 
 
@@ -693,7 +697,11 @@ Tout ce qui est alloué dynamiquement est dans le **tas**.
 
    `pointeur = calloc(3, sizeof(double));`
 
-* **Différences** entre `calloc` et `malloc` : Préférer **toujours** `calloc` à `p = malloc(n * sizeof(Type))` 
+  
+
+* **Différences** entre `calloc` et `malloc` 
+
+  Préférer **toujours** `calloc` à `p = malloc(n * sizeof(Type))` 
 
   * ⚠️ `p = malloc(n * sizeof(Type))`  peut engendrer un **overflow** sur la multiplication
 
@@ -702,6 +710,8 @@ Tout ce qui est alloué dynamiquement est dans le **tas**.
     ​	**toujours** initialiser quand on utilise `malloc` 
 
     ​	On peut utiliser ` memset(ptr, 255, sizeof(*ptr));`
+    
+    
 
 * `free(pointeur)` : libère la zone mémoire pour qu'elle puisse être utilisée pour autre chose . 
 
@@ -709,7 +719,7 @@ Tout ce qui est alloué dynamiquement est dans le **tas**.
 
     > Un `free(pointeur)` doit toujours être précédé par `pointeur = NULL` 
 
-* > **Règle absolue :** Toute zone mémoire allouée par un `[cm]alloc` doit impérativement être libérée par un `free` correspondant !
+  > **Règle absolue :** Toute zone mémoire allouée par un `[cm]alloc` doit impérativement être libérée par un `free` correspondant !
 
 
 
@@ -768,10 +778,9 @@ if (v != NULL) {
     vector result = *v;
     result.allocated += VECTOR_PADDING;
     if ((result.allocated > SIZE_MAX / sizeof(type_el)) ||
-    ((result.content = realloc(result.content,
-    result.allocated * sizeof(type_el)))
+    ((result.content = realloc(result.content,result.allocated * izeof(type_el)))
     == NULL)) {
-    return NULL; /* retourne NULL en cas d'échec ;
+    	return NULL; /* retourne NULL en cas d'échec ;
     * v n'a pas été modifié. */
     }
     // affectation finale, tout d'un coup
@@ -782,7 +791,126 @@ if (v != NULL) {
 }
 ```
 
-*  ⚠️` (result.allocated > SIZE_MAX / sizeof(type_el))` et pas
-   `(result.allocated * sizeof(type_el)> SIZE_MAX)` cette dernier peut OVERFLOW
+⚠️` (result.allocated > SIZE_MAX / sizeof(type_el))` et pas
+`(result.allocated * sizeof(type_el)> SIZE_MAX)` ce dernier peut OVERFLOW
 
-  
+  ## W7- Chaines de caractères , pointeurs de fonctions et Casting 
+
+### Chaines de caractères 
+
+**Déclaration** :
+
+1. par une variable de taille fixe (tableau) (allocation statique) : 
+
+```C
+char nom[25]; 
+char nom_fichier[FILENAME_MAX]; 
+char const welcome[] = "Bonjour"; 
+```
+
+2. par une allocation dynamique (pointeur) : `char* nom;`
+
+   ​	Ici il ne faut **pas oublier ** d'allouer *n+1*  caractères si on veut représenter *n* caractères. 
+
+   ​	Le n+1-ème est le caractère `'\0'` noter qu'on initialisant le tableau à `0` on a déjà que le dernier élément est `'\0'` ( `'\0'`  = `(char)0`)
+
+```C
+👍 char s[] = "Bonjour";
+⚠️ char* s = "bonjour"; // on veut mettre une const(droite) dans une chaine non const(gauche)
+// La bonne manière de faire : 
+char* s = calloc(TAILLE+1, 1); //  + 1 pour le caractère '\0'
+strncpy(s, "bonjour", TAILLE);
+```
+
+<img src="assets/image-20230403094355319.png" alt="image-20230403094355319" style="zoom:33%;" />
+
+`"bonjour"` est une chaine de caractères constante stockée dans mémoire du compilateurs. 
+
+Si on veut vraiment que notre chaine `s` ne change pas on peut faire
+
+ `const char* s = "bonjour";`
+
+![image-20230403084847548](assets/image-20230403084847548.png)
+
+![image-20230403084928595](assets/image-20230403084928595.png)
+
+### Pointeurs de fonctions 
+
+Une fonction a aussi une adresse mémoire (là ou sont ses instruction)
+
+La syntaxe consiste à mettre `(*ptr)` à la place du nom de la fonction.
+
+`double f(int i)`; `f` est une fonction qui prend un `int` en argument et retourne un `int`. 
+
+`double (*g)(int i)`; `g` est un pointeur sur une fonction du même type que ci-dessus. 
+
+mais `f` est en même temps un pointeur sur la fonction donc on peut écrire `g=f` ou `g = &f`. 
+
+De la même manière , on peut écrire `z = g(i)` ou `z = (*g)(i)`
+
+**Passer des fonctions en arguments**
+
+```C
+typedef double (*Fonction)(double);
+...
+double integre(Fonction f, double a, double b) { ... }
+...
+aire = integre(sin, 0.0, M_PI);
+```
+
+**Arguments génériques**
+
+On veut une fonction qui peut trier n'importe quel liste d'éléments. `void*` pointe à une zone mémoire qui peut contenir n'importe quoi. 
+
+` int(*compar)(const void*, const void*)` is a function that takes as a parameter two pointers and returns an `int`. 
+
+```C
+void qsort(void* base, size_t nb_el, size_t size, 
+           int(*compar)(const void*, const void*));
+// one example of such compar 
+int compare_int(void const * arg1, void const * arg2) {
+	int const * const i = arg1;
+	int const * const j = arg2;
+	return ((*i == *j) ? 0 : ((*i < *j) ? -1 : 1)) ;
+}
+...
+int tab[NB];
+...
+qsort(tab, NB, sizeof(int), compare_int);
+```
+
+### Casting de pointeur 
+
+casting normal
+
+```C
+double x = 5.4;
+int i = (int) x; /* i = 5 */
+```
+
+casting de pointeurs 
+
+```C
+double x = 5.4;
+int* i = (int*) &x; // on veut que le pointeur sur double devienne pointeur sur int
+printf("%d\n", (int) x); /* affiche 5 */
+printf("%d\n", *i); /* affiche -1717986918 */ // c'est 5.4 éxprimé en int. 
+
+```
+
+Attention ⚠️ ! Dans le cas de pointeur, cela ne change pas le contenu de la zone/variable en question, mais uniquement son interprétation. 
+
+<img src="assets/image-20230403095328252.png" alt="image-20230403095328252" style="zoom:33%;" />
+
+une autre solution pour `qsort` : 
+
+```C
+Personne montab[TAILLE];
+...
+int compare_personnes(Personne const* p_quidam1,
+Personne const* p_quidam2);
+...
+qsort((montab, TAILLE, sizeof(Personne),
+	(int (*)(void const*, void const*))compare_personnes);// on cast 
+```
+
