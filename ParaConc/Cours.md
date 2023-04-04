@@ -681,7 +681,7 @@ When does `aggregate` always give the same results ?
 
 * The following two properties imply split invariance : 
 
-  1. `g(f(x,y),u) = g(x,f(y,z))  for all x,y,u               (g-f-associative)`
+  1. `g(u,f(v,x)) == f(g(u,v),x) for all x,y,u               (g-f-associative)`
   2. `g(z,x ) = x 									        (g-right-unit)`
 
 ### Scala parallel collections 
