@@ -660,7 +660,23 @@ Un pointeur c'est comme la page d'un carnet d'adresse
 
 * *allouer un pointeur p :* aller construire une maison quelque part et noter son adresse sur la page p (mais p n'est pas la maison, c'est juste la page qui contient l’adresse de cette maison !)
 
-**Le contenu de cette semaine n'est pas fini.** 
+#### const pointeurs
+
+`type const* ptr; (ou const type* ptr)` déclare un pointeur sur un objet constant de type `type` : 
+
+* modification de la valeur au travers de `ptr` : **pas** possible.
+
+* faire pointer `ptr` vers un autre objet : possible  
+
+`type* const ptr = &obj;` déclare un pointeur constant sur un objet `obj` de type `type` :
+
+* Faire pointer `ptr` vers autre chose : **pas** possible 
+
+* Modifier la valeur de `obj` au travers de `ptr` : possible 
+
+  
+
+  Pour résumer : `const` s'applique toujours au type directement précédent, sauf si il est au début, auquel cas il s'applique au type directement suivant.
 
 ## W6-Allocation dynamique 
 
@@ -796,7 +812,7 @@ if (v != NULL) {
 
   ## W7- Chaines de caractères , pointeurs de fonctions et Casting 
 
-### Chaines de caractères 
+### Chaines de caractères 	
 
 **Déclaration** :
 
@@ -912,5 +928,117 @@ Personne const* p_quidam2);
 ...
 qsort((montab, TAILLE, sizeof(Personne),
 	(int (*)(void const*, void const*))compare_personnes);// on cast 
+```
+
+## W8- Rappel char* et Copie profonde 
+
+### Rappel char* 
+
+```C
+#define MAX_NOM 100
+
+typedef struct {
+char* nom;
+int age; // unsigned serait mieux...
+} Personne; 
+
+
+int main(void)
+{
+    
+Personne pierre = { "Pierre", 12 };
+/* (1): faute : devrait au moins etre const ! */
+    
+strncpy(pierre.nom, "Gustave", 7); /* SEGV : (2)*/
+    
+pierre.nom = "Gustave"; /* (3) : pas mieux que (2) ! 
+    
+}
+
+```
+
+Illustration de (2)
+
+![image-20230423111802002](assets/image-20230423111802002.png)
+
+Illustration de (3)
+
+![image-20230423111743860](assets/image-20230423111743860.png)
+
+**Récap:** 
+
+* Soit on choisit que les noms ne change pas et on écrit
+
+  ```C
+  const char* nom; 
+  ```
+
+  auquel cas on a droit à la syntaxe : 	 
+  ```C
+  Personne pierre = { "Pierre", 12 }; 
+  pierre.nom = "Pierre"; 
+  ```
+
+* Soit on choisit que les noms peuvent changer et on écrit 
+  ```C
+  char* nom; 
+  ```
+
+  auquel cas on **doit** utiliser 
+
+  ```C
+  strncpy(pierre.nom, "Eugène", MAX_NOM); 
+  ```
+
+Solution : 
+
+```C
+ // bonne façon de faire : allocation dynamique
+
+pierre.nom = calloc(MAX_NOM+1, sizeof(char));
+if (pierre.nom == NULL) { /* ... */ return 1; }
+pierre.nom[MAX_NOM] = '\0'; // cette ligne inutile pour calloc , NECESSAIRE pour malloc 
+
+strncpy(pierre.nom, "Eugène", MAX_NOM); // ici ça joue 
+```
+
+
+
+### Copies 
+
+**Copie superficielle**
+
+```C
+quidam = pierre;
+
+strncpy(quidam.nom, "Charles-Édouard", MAX_NOM);
+quidam.age = 22;
+
+// pierre aussi aura le nom "Charles-Édouard"
+```
+
+What happens ?
+
+<img src="assets/image-20230423112856806.png" alt="image-20230423112856806" style="zoom:50%;" />
+
+**Solution copie profonde**
+
+```C
+void copie(const Personne* a_copier, Personne* clone)
+{ 
+ // ne surtout pas faire clone.nom = a_copier.nom 
+strncpy(clone->nom, a_copier->nom, MAX_NOM);
+clone->age = a_copier->age;
+}
+
+```
+
+Tout ces problèmes auraient été évités si on avait utilisé 
+
+```C
+typedef struct {
+    char nom[MAX_NOM+1];
+    int age;
+} Personne;
 ```
 
