@@ -876,7 +876,7 @@ aire = integre(sin, 0.0, M_PI);
 
 **Arguments génériques**
 
-On veut une fonction qui peut trier n'importe quel liste d'éléments. `void*` pointe à une zone mémoire qui peut contenir n'importe quoi. 
+On veut une fonction qui peut trier n'importe quel liste d'éléments. `void*` pointe à une zone mémoire qui pe``ut contenir n'importe quoi. 
 
 ` int(*compar)(const void*, const void*)` is a function that takes as a parameter two pointers and returns an `int`. 
 
@@ -1042,3 +1042,206 @@ typedef struct {
 } Personne;
 ```
 
+## W9- Pointeurs et tableaux : 
+
+Quel est la différence entre un tableaux `int tab[N]` et un pointeur `int* ptr` ? 
+
+* On peux considérer qu'un tableau "est" un pointeur **constant** sur une zone alloué **statiquement** (lors de la déclaration du tableau)
+
+*  Syntaxe similaire pour accéder au n-ème élément `tab[1]` vs `ptr[1]` 
+
+* `int**` ou `int*[]` sont très différents de `int[N][N]` ( `int[][]` n'existe pas il faut toujours préciser la taille) 
+
+  `int**`  : 
+
+  *  n'est **pas** continu en mémoire 
+  * n'est **pas** alloué au départ
+  * les lignes n'ont **pas** le même nombre d'éléments
+    Contrairement à `int[N][N]`
+  
+  <img src="assets/image-20230517101005846.png" alt="image-20230517101005846" style="zoom:50%;" />
+
+```C
+// ...
+double p1[N][M];
+double* p2[N];
+double** p3;
+p3 = calloc(N, sizeof(double*)); // usual checks...
+for (size_t i = 0; i < N; ++i) {
+    p2[i] = calloc(M, sizeof(double)); // ...
+    p3[i] = calloc(M, sizeof(double)); 
+}
+
+printf("&(p2[1][2]) - p2 = %u doubles\n",
+((unsigned int) &(p2[1][2]) - (unsigned int) p2) / sizeof(double));
+// la distance en nombre de doubles entre p2 et p2[1][2]
+// résultat : &(p2[1][2]) - p2 = 151032928 doubles
+```
+
+explication : 
+
+* `p2[1]` a été alloué dynamiquement , donc `p2[1][2]` se trouve dans la file d'ou la grande distance entre les deux : <img src="assets/image-20230517101835251.png" alt="image-20230517101835251" style="zoom: 33%;" />
+
+### Arithmetique de pointeurs 
+
+```C
+char* s; char* p; char lu;
+...
+p = s;
+while (lu = *p++) { ... lu ... }
+// pourquoi ne pas utiliser *p au lieu de lu { ... *p ... }`
+// parceque *p contients l'élement APRES increment donc ce n'est pas la même 
+// chose que lu 
+
+// *p++ veut dire *(p++)
+// 1. p++ va donner p  
+// 2. *(p++) va donner la valeur *p , 
+// lu va contenir *p 
+// 3. on incremente p
+```
+
+### Mise en garde sur sizeof 
+
+```C
+int tab[N];
+... sizeof(tab)/sizeof(tab[0]) ... // donne N, mais ATTENTION !!
+```
+
+⚠️
+
+```C
+void f(int t[N]) {
+... sizeof(t)/sizeof(int) // =  2 sur une architecture 64 bits (taille d'un poiteur 64 bits = 8 byte)
+    // sizeof(t)  = sizeof (int* t) = 8 : le tableau de int est traité comme un pointeur de int 
+    // sizeof(int) = 4 
+}
+```
+
+### Flexible array member
+
+C'est un tableau dynamique où toute la `struct`est continue en mémoire  
+
+​												 <img src="assets/image-20230517105631203.png" alt="image-20230517105631203" style="zoom:50%;" />
+
+```C
+struct vector_double {
+	size_t size; // nombre d'éléments
+	double data[1];
+};
+
+const size_t N_MAX = 
+    (SIZE_MAX - sizeof(struct vector_double)) / sizeof(double) + 1;
+
+if (nb <= N_MAX) {
+    struct vector_double* tab = malloc(sizeof(struct vector_double)
+    + (nb-1)*sizeof(double) );
+    if (tab != NULL) {
+    	tab->size = nb;
+	}
+}
+
+```
+
+
+
+## W10-Compilation 
+
+* `main` a deux prototypes `int main(void);` et `int main(int argc, char* argv[])`
+  * `argc` est un entier comptant le nombre d'arguments 
+  * `argv`est un tableau de pointeurs sur des caractères : 
+
+`argv[0]` correspond au nom du programme.
+
+![image-20230521122115906](assets/image-20230521122115906.png)
+
+La compilation se fait en plusieurs étapes :
+
+![image-20230521122226126](assets/image-20230521122226126.png)
+
+* La **précompilation**, dont le rôle est de
+  * substituer les macros (récriture) 
+  * choisir les lignes de codes en compilation conditionnelle 
+  *  inclure les fichiers demandés (directive #include) 
+* la **compilation** proprement dite, qui produit du code assembleur 
+* **l'assemblage** du code assembleur en code objet 
+*  **l'édition de liens** entre différents codes objets pour en faire un code exécutable (un code « chargeable », en toute rigueur).
+
+### Précompilation et define 
+
+`#define` ne fait que réécrire le code à l'étape de la *précompilation* 
+
+ne fait **que** dire au compilateur de remplacer chaque occurrence de la chaîne `TAILLE_MAX` par la séquence de caractères `12`.
+
+`#define` peut prendre des **arugments**: 
+
+Exemple : `#define mult(x,y) x*y`
+
+⚠️⚠️erreur classique : 
+
+```C
+#define mult(x,y) x*y
+printf("%d\n", mult(5-5, 7-2)); // Qu'est ce qui est affiché ici ? 
+// pas 0 mais bien -28 
+// Pourquoi ? LA RECRITURE 
+// 5-5*7-2 : priorité de la multiplication = -28 
+```
+
+>  **Règle** : Il faut **toujours** parenthéser les arguments des macro. 
+
+**define avancé avec des les noms des arguments**
+
+On peut avoir le nom d'une variable en tant que chaine de caractères avec le #
+
+`#x` va donner `"x"`
+
+```C
+#define affiche(fmt,var) printf("Ici, " #var "=" fmt "\n", var)
+
+affiche("%d", i); // ☞ printf("Ici, " "i" "=" "%d" "\n", i);
+// à noter que "ab""c""de" = "abcde"
+```
+
+Si on veut transformer n'importe quelle valeur en chaine de caractères 
+
+```C
+#define SIZE 12
+#define STR(X) #X
+#define INPUT_FMT(X) "%" STR(X) "s"
+STR(SIZE) = "12"
+```
+
+très avancé : 
+
+```C
+#define coupledef(type) \
+typedef struct { type x; type y; } couple_ ## type
+coupledef(double);
+☞ typedef struct { double x; double y; } couple_double;
+```
+
+
+
+
+
+## Autre 
+
+* `void * memcpy ( void * destination, const void * source, size_t num );`
+
+  * `destination`
+
+  Pointer to the destination array where the content is to be copied, type-casted to a pointer of type `void*`.
+
+  * `source`
+
+  Pointer to the source of data to be copied, type-casted to a pointer of type `const void*`.
+
+  * `num`
+
+  Number of bytes to copy.
+  [size_t](https://cplusplus.com/cstring:size_t) is an unsigned integral type.
+
+* `int comparator(const void* p1, const void* p2);`
+  * 1 if `p1` should come *after* `p2` ( `p1>p2` if we want to sort increasingly)
+  * -1 if `p1` comes *before* `p1` 
+  * 0 if equal 
+  * 

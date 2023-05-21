@@ -639,5 +639,188 @@ Non linear SVM :
 
  $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{  \color{\red} \phi(x)_n })\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
 
+[missing content here]
 
+### Decision trees 
+
+The goal to classify data : 
+
+ <img src="assets/image-20230429144354220.png" alt="image-20230429144354220" style="zoom:50%;" />
+
+The number of data-points of each class must be the same. 
+
+We will build a tree s.t :  for any data-point $v$ 
+
+<img src="assets/image-20230429144841908.png" alt="image-20230429144841908" style="zoom:50%;" />
+
+* any node will output true or false 
+* if true we go to the right child , if false we go to the other child 
+* we stop when we arrive at leaf 
+
+Compute $p_l(c)$ the proportion of samples in each class that lands in leaf $l$ . 
+
+If , at test time , our test point $v$ falls into leaf $l$ , we will consider to  $p_l(c)$  to be the probability that $v$ has label $c$ . 
+
+[CONTENT MISSING HERE]
+
+## V-Neural Networks  
+
+Let's recap what we have been doing : 
+
+* <u>AdaBoost</u>: Use several hyperplanes. 
+*  <u>Forests</u>: Use several hyperplanes. 
+*  <u>SVMs</u>: Map to a higher dimension. 
+*  NEW **Neural Nets:** Map to a higher dimension and use lots of hyperplanes. 
+
+Neural networks is about repeating logistic regression multiple times 
+
+Logistic regression : $y(\textbf{x})=\sigma(\textbf{w}\cdot\textbf{x}+b)$ and minimize *binary cross entropy*
+
+​                                             <img src="assets/image-20230502084139010.png" alt="image-20230502084139010" style="zoom: 33%;" />          
+
+Repeating the process multiple times :   $\textbf{h}=\sigma(\textbf{Wx}+\textbf{b})$ each node has its vector $\textbf{w}_i$ of weights and and each layer has its matrix $\textbf{W}=\left[\begin{array}{c}\textbf{w}_1\\ \textbf{w}_2\\ \vdots\\ \textbf{w}_H\end{array}\right]$ <img src="assets/image-20230502084630562.png" alt="image-20230502084630562" style="zoom: 33%;" />                <img src="assets/image-20230502085508679.png" alt="image-20230502085508679" style="zoom: 33%;" />
+
+
+
+The 
+
+![image-20230502095358522](assets/image-20230502095358522.png)
+
+Like logistic regression : we minimize the cross entropy : 
+
+$E(\mathbf{W}_1,\mathbf{w}_2,\mathbf{b}_1,\mathbf{b}_2)=\dfrac{1}{N}\sum_{n=1}^N E_n(\mathbf{W}_1,\mathbf{w}_2,\mathbf{b}_1,\mathbf{b}_2)$ 
+
+*2 classes :*   for sample $n$ 
+
+​						$E_{n}(\mathbf{W}_{1},\mathbf{w}_{2},\mathbf{b}_{1},\mathbf{b}_{2})=-{(t_{n}\ln(y_{n})+(1-t_{n})\ln(1-y_{n}))}$ 
+
+*K classes :*
+
+* $p_n^k=\dfrac{\exp(\mathbf{y}_n[k])}{\sum_j\exp(\mathbf{y}_n[j])}$  : probability of sample $n$ to be in class $k$ 
+
+* $E_n(\mathbf{W}_1,\mathbf{W}_2,\mathbf{b}_1,\mathbf{b}_2)=-\sum t_n^k\ln(p_n^k)$
+
+### Gradient Descent  
+
+We go in the reverse direction of the gradient : The direction of greatest decrease 
+
+Iterative process : $\mathbf{x}^{\tau+1}=\mathbf{x}^{\tau}-\eta\nabla f(\mathbf{x}^{\tau})$ 
+
+<img src="https://easyai.tech/wp-content/uploads/2019/01/tiduxiajiang-1.png" alt="Gradient Descent - Gradient descent - Product Manager's Artificial  Intelligence Learning Library" style="zoom:50%;" />
+
+$f$ is the function we want to minimize : here it will be $E_n$ 
+
+$\mathbf{w}^{\tau+1}=\mathbf{w}^{\tau}-\eta\sum\limits_{n=1}^N\nabla E_n(\mathbf{w}^{\tau})$ 
+
+**Stochastic gradient descent :**
+
+At each iteration , we don't need to compute the gradient over *all* the dataset. We just choose a batch random on which we compute the gradient. 
+
+$\text{Stochastic~descent:}~\mathbf{w}^{\tau+1}=\mathbf{w}^{\tau}-\eta\sum_{n\in B^{\tau}}\nabla E_{n}(\mathbf{w}^{\tau})$ 
+
+$B^{\tau}$ is the randomly chosen batch at iteration $\tau$ 
+
+* Helps computation go fast
+* Prevents local minimum and overfitting (why?)
+
+**How to compute gradients ? Backpropagation**
+
+<img src="assets/image-20230502103037122.png" alt="image-20230502103037122" style="zoom:50%;" />
+
+Let's consider the last layer : we have : The loss function is a function of the activations of the last layers : 
+
+$E_n = L_n(a_1,\dots,a_K)$ 
+
+If we want to derivate the loss function wrt to the weights $w_{ij}$ we will have to use the chaine rule ( $w_{ij}$  $i$-th weight of of node $j$ )
+
+$\frac{\delta E_n}{\delta w_{ji}}=\frac{\delta E_n}{\delta a_j}\frac{\delta a_j}{\delta w_{ji}}$ by chain rule 
+
+given that $a_j=\sum_i w_{ji}z_i$ we have that $\dfrac{\delta a_j}{\delta w_{ji}} = z_i$ 
+
+So $\frac{\delta E_n}{\delta w_{ji}}=\delta_j z_i$ : where $\delta_j \equiv \dfrac{\delta E_n}{\delta a_j}$ 
+
+
+
+All layers will depend of some $\delta_h$ and some $z_k$ , backpropagation is the act of starting from the last layer and computing all $\delta_h$ 
+
+We do that in two steps : 
+
+1. Forward pass : compute all activations $a$ : each layer depends on previous layer 
+
+2. Backward pass : compute all $\delta$  : each layer depends on following layer that's we it's done backward.
+
+   
+
+### Convolutional neural networks 
+
+**Fully connected neural nets :** 
+
+<img src="assets/image-20230509083935946.png" alt="image-20230509083935946" style="zoom:33%;" />
+
+The problem of neural networks is their huge number of weights. 
+
+This is especially the case when we deal with images. 
+
+If we consider a WxH image , we can encode it as a WH dimensional vector. 
+
+Drawbacks : 
+
+* huge vector , we will need an NN with a *lot* of weights. 
+* We loose the *neighborhood relationship* of the points of the image.  
+
+We want to have : 
+
+* neighborhood relationships
+* translation invariance : the output of the nn shouldn't change after a translation. 
+
+Solution :
+
+We will add some special layers before our fully connected network :   
+
+1. **Convolutional layer :** 
+   <img src="assets/image-20230516083248444.png" alt="image-20230516083248444" style="zoom:33%;" />
+
+   We take our input image , we create multiple modified versions of it. 
+   Each version will capture some type of information. Each version is created by taking the *convolution* of the image with some *filter*. 
+
+   filters : <img src="assets/image-20230516083432389.png" alt="image-20230516083432389" style="zoom:33%;" />   
+
+   the convolution will naturally decrease the size of the image a little (we cannot convolute pixels on the edge). We can fix this by *padding* i.e adding zeroes . 
+
+2. **Pooling layer :**
+                          <img src="assets/image-20230516083646506.png" alt="image-20230516083646506" style="zoom:40%;" /> 
+
+   Reduces the number of inputs by replacing all activations in a neighborhood by a single one which is a function of the others. 
+
+   A common choice is **max pooling** where we replace a neighborhood by the  node with the maximum value of that grid. 
+
+The final architecture of the neural network : 
+
+<img src="https://d33wubrfki0l68.cloudfront.net/8c96abf1173f455fb1e92b27303e6e5206c604f7/e4d53/images/blog/a-cnn-sequence-to-classify-handwritten-digits.jpg" alt="A Comprehensive Guide to Convolutional Neural Networks — the ELI5 way |  Saturn Cloud Blog" style="zoom:50%;" />
+
+#### ResNet
+
+
+
+
+
+####  UNet
+
+Let's use the road detection problem to illustrate UNets, 
+
+given : <img src="assets/image-20230516094408291.png" alt="image-20230516094408291" style="zoom:33%;" />       predict : <img src="assets/image-20230516094539023.png" alt="image-20230516094539023" style="zoom: 75%;" />
+
+This a UNet : 
+
+<img src="assets/image-20230516094618043.png" alt="image-20230516094618043" style="zoom: 33%;" />
+
+It is constituted from : 
+
+* **Down sampling** layer : 
+
+  The encoder network acts as the feature extractor and learns an abstract representation of the input image through a sequence of the encoder blocks.
+
+* **Upsampling** layer : 
+
+  To have the same dimensions as the input function. 
 
