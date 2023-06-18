@@ -15,7 +15,7 @@
   
 * *Empirical risk :* combination loss function of multiple data-points $R(\{\mathbf{x}_i\},\{y_i\},\mathbf{w})=\dfrac{1}{N}\sum_{i=1}^N\ell(\hat{y}_i,y_i)$    
 
-* *Overfitting*  : general phenomenon where we get a very low training error , and a large test error. usually happens when  the mode is too *complex*.                           
+* *Overfitting*  : general phenomenon where we get a very low training error , and a large test error. usually happens when the model is too *complex*.                           
 
   ​                                   <img src="assets/image-20230228083936292.png" alt="image-20230228083936292" style="zoom:40%;text-align: center;" />                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 
@@ -639,13 +639,11 @@ Non linear SVM :
 
  $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{  \color{\red} \phi(x)_n })\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
 
-[missing content here]
-
 ### Decision trees 
 
-The goal to classify data : 
+The goal to classify data :  
 
- <img src="assets/image-20230429144354220.png" alt="image-20230429144354220" style="zoom:50%;" />
+<img src="assets/image-20230429144354220.png" alt="image-20230429144354220" style="zoom:50%;" />
 
 The number of data-points of each class must be the same. 
 
@@ -824,3 +822,127 @@ It is constituted from :
 
   To have the same dimensions as the input function. 
 
+## VI- Dimentionality reduction
+
+<img src="assets/image-20230523084231142.png" alt="image-20230523084231142" style="zoom:50%;" />
+
+### Principle Component Analysis 
+
+$x_i$ : High dimentional data 
+
+$y_i$ : Low dimentional data
+
+The transformation will be a linear one  : $ \textbf{y}_i=\textbf{W}^T\textbf{x}_i$ 
+
+We will first normalize the data by shifting them by the mean $\mathbf{\bar{x}}=\frac{1}{N}\sum_{i=1}^N\mathbf{x}_i$ 
+
+$\mathbf{y}_i=\mathbf{W}^T(\mathbf{x}_i-\mathbf{\bar{x}})$ 
+
+We will also impose the constraint that $\textbf{W}$ is orthogonal : $\textbf{W}^T\textbf{W} = I$  
+
+The challenge is to find the matrix $\textbf{W}$ that maximizes the variance : 
+
+​							$\operatorname{var}(\{y_i\})=\frac{1}{N}\sum_{i=1}^N(y_i-\bar{y})^2$ 
+
+The intuition is that if we maximize the variance , we will find the mapping that keeps *most variation* ie *most information*.
+
+
+
+The solution to this problem (optimizating $\operatorname{var}(\{y_i\})$) is to choose 
+
+$\mathbf{W}=\left[\mathbf{w}_1|\mathbf{w}_2|\cdots|\mathbf{w}_d\right]$ were $\textbf{w}_1 ,\textbf{w}_2,\textbf{w}_3...$ are the eigen vectors corresponding to the $d$ largest eigen values  $\lambda_1 > \lambda_2 > ... > \lambda_d$ of the covariance matrix $C$ where $\textbf{C}=\frac{1}{N}\sum_{i=1}^N(\textbf{x}_i-\bar{\textbf{x}})(\textbf{x}_i-\bar{\textbf{x}})^T$
+
+ 
+
+We can go in the other way : from *low* dimention to *high* dimention : $\hat{\textbf{x}}=\bar{\textbf{x}}+\textbf{W}\textbf{y}$ 
+
+
+
+<img src="assets/image-20230523092537885.png" alt="image-20230523092537885" style="zoom:33%;" />
+
+
+
+**Limitations : **
+
+Things change when we introduce labels (classes). 
+
+
+
+<img src="assets/image-20230523092806835.png" alt="image-20230523092806835" style="zoom:50%;" />
+
+In this example the colored classes are the classes we want achieve. 
+
+$\textbf{u}_1$ is the direction in which the projected points have the most variance. So it will be the principal compenent. Data projected on $\textbf{u}_1$ will not be seperable into the two classes red and blue.   
+
+Low seperability. 
+
+### Preservation of classes (LDA) 
+
+PCA is unsupervised and thus may not always preserve category information.
+
+<img src="assets/image-20230523093915881.png" alt="image-20230523093915881" style="zoom:50%;" />
+
+What we want : 
+
+<img src="assets/image-20230523094019671.png" alt="image-20230523094019671" style="zoom:50%;" />
+
+Mathematically , we want low variance between data points of the same class :
+
+*Variance withing clusters : (to minimize later)*   
+
+$E_W(\mathbf{w}_1)=\sum_{c=1}^{C}\sum_{i\in c}(y_i-\nu_c)^2$ where $\boldsymbol{\nu}_{c}$ is the mean of class $c$ . 
+
+We also still want maximum variance between classes. 
+
+*Variance between clusters: (to maximize )*
+
+ $E_B(\mathbf{w}_1)=\sum_{c=1}^C N_c(\nu_c-\bar{y})^2$ 
+
+(It helps to think about variance as distance here)
+
+We want to simultaneously : 
+
+* minimize $E_W(\textbf{w}_1)$ 
+* maximize $E_B(\textbf{w}_1)$
+
+The solution is still the largest eigen vectors of some matrix.
+
+![image-20230523100032172](assets/image-20230523100032172.png)
+
+It is important to note that we pass the labels to LDA (contrary to PCA) and we ask it to preserve them after the reduction of the data. 
+
+## Non linear dimensionality reduction (Autoencoders)
+
+
+
+<img src="assets/image-20230618123316181.png" alt="image-20230618123316181" style="zoom:30%;" />
+
+We want to make mappings non linear so they can handle these cases. 
+
+<img src="assets/image-20230618123552246.png" alt="image-20230618123552246" style="zoom:50%;" />
+
+For PCA and LDA $f_e$ and $f_d$ were linear transformations. 
+
+The principle behind *autoencoders* in to *learn* $f_e$ and $f_d$ 
+
+such that $x$ and $f_d(f_e(x))$ are the closest possible. In other word the encoding and decoding operations keep as much information as possible. 
+
+We *learn* these functions with a neural network. 
+
+One layer : 
+
+​													<img src="assets/image-20230618124822005.png" alt="image-20230618124822005" style="zoom:33%;" /> 
+
+$\textbf{z}=\sigma_e(\mathbf{W}_e\mathbf{x}+\mathbf{b}_e)$ and $\hat{\textbf{x}}=\sigma_d(\textbf{W}_d\textbf{z}+\textbf{b}_d)$ 
+
+where $\sigma_e$ and $\sigma_d$ are non linearities. We learn $\mathbf{W}_e$ and $\textbf{W}_d$  by minimizing $\sum_n\|\hat{\textbf{x}}_n-\textbf{x}_n\|^2$ 
+
+We can have multiple layers : 
+
+<img src="assets/image-20230618125119421.png" alt="image-20230618125119421" style="zoom:50%;" />
+
+and even a CNN (good for dealing with images) :
+
+To encode we use convolution , to reduce the dimensionality we can either use max pooling or set a stride $> 1$ .  
+
+To decode we use transposed convolutions ($\texttt{ConvTranspose2d}$)
