@@ -639,7 +639,7 @@ Non linear SVM :
 
  $\quad \quad \begin{array}{c}\mathbf{w}^*=argmin_{(\mathbf{w},(\xi_n))}\dfrac{1}{2}|\left|\mathbf{w}\right||^2+C\sum_{n=1}^N\xi_n,\\\text{subject to}\forall n,\quad t_n\cdot(\mathbf{\tilde{w}}\cdot\mathbf{  \color{\red} \phi(x)_n })\geq1-\xi_n\text{ and }\xi_n\geq0.\end{array}$<img src="assets/image-20230328092953478.png" alt="image-20230328092953478" style="zoom:30%;" />
 
-### Decision trees 
+### 	Decision trees 
 
 The goal to classify data :  
 
@@ -655,11 +655,33 @@ We will build a tree s.t :  for any data-point $v$
 * if true we go to the right child , if false we go to the other child 
 * we stop when we arrive at leaf 
 
-Compute $p_l(c)$ the proportion of samples in each class that lands in leaf $l$ . 
+Compute $p_l(c)$ the proportion of samples in each class $c$ that lands in leaf $l$ . 
+
+We have that $p_l(c) = p(Class=c | \text{Land in leaf }l)$ 
 
 If , at test time , our test point $v$ falls into leaf $l$ , we will consider to  $p_l(c)$  to be the probability that $v$ has label $c$ . 
 
-[CONTENT MISSING HERE]
+Like AdaBoost we will use multiple weak classifiers as nodes. 
+
+<img src="assets/image-20230618131311110.png" alt="image-20230618131311110" style="zoom:50%;" />
+
+At each of these learners we will try to maximize the information gain $IG$ 
+
+where :
+
+$IG = \text{entropy of parent} - (\text{entropy of left child} + \text{entropy of right child}) $
+
+$= Q(\mathcal{S})-\sum_{\tau\in L,R}\frac{|\mathcal{S}^{\tau}|}{|\mathcal{S}|}Q(S^{\tau})$
+
+In other words , we want to gain the most information , therefore the children should have to less $\text{entropy}$ possible. 
+
+<img src="assets/image-20230618133016734.png" alt="image-20230618133016734" style="zoom:50%;" />
+
+When we move from a state of high entropy to low entropy we gain information. 
+
+That's our criteria for choosing "weak" learners. 
+
+It is also possible to choose multiple decision tree and combine them (random forest).  
 
 ## V-Neural Networks  
 
