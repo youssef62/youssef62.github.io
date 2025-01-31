@@ -1,0 +1,317 @@
+/* -*- mode: rainbow; mode: css; -*-
+
+   CSS level 3 with vendor extensions for hyphenation.
+
+*/
+
+/* @import url("./OpenSans/OpenSans.css"); */
+
+body {
+    font-family: sans-serif;
+
+    /* font-family: "Merriweather"; */
+
+    text-align: justify;
+    /* font-family: monospace; */
+    /* font-family: "Open Sans", "Bitstream Vera Sans", sans-serif; */
+
+    color: rgba(0, 0, 0, 0.881);
+    background-color: white;
+
+    font-size: 12pt;
+    max-width: 40em;
+
+    line-height: 1.2;
+    padding: 0 1em 0 1em;
+    margin: 0 auto 0 auto;
+
+    font-weight: 300;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    hyphens: auto;
+}
+
+div.important {
+    background: rgb(255, 255, 100);
+    padding: 0em;
+    margin: 0em;
+}
+
+.collapsible-input { display: none; }
+
+.collapsible-input         + .collapsible-title + .collapsible-content { display: none; margin: 1.0em 0.0em 1.0em 0.0em; }
+.collapsible-input:checked + .collapsible-title + .collapsible-content { display: block; }
+
+.collapsible-input         + .collapsible-title .collapsible-mark { display: inline; color: #0000d0; }
+.collapsible-input:checked + .collapsible-title .collapsible-mark { display: none; }
+
+hr {
+    margin: 1.5em auto 1.5em auto;
+    width: 1em;
+}
+
+a {
+    color: #0000d0;
+    text-decoration: none;
+}
+
+a:visited {
+    background-color: inherit;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+p.footer {
+    display: none;
+    text-align: right;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+div.highlighted {
+    background-color: yellow;
+    padding: 0.0em 0.5em 0.0em 0.5em;
+}
+
+div.highlighted a {
+    text-decoration: underline;
+}
+
+/*******************************************************************/
+
+h1 {
+    text-align: left;
+    font-size: 275%;
+    font-weight: 400;
+    /* text-transform: uppercase; */
+}
+
+h2 {
+    text-align: left;
+    font-size: 150%;
+    font-weight: 500;
+    /* text-transform: uppercase; */
+}
+
+h3 {
+    text-align: left;
+    font-size: 100%;
+}
+
+/*******************************************************************/
+
+address {
+    font-style: normal;
+}
+
+pre.code {
+    font-family: monospace;
+    text-align: left;
+    padding-left: 1em;
+    margin-left: 1em;
+    line-height: 1.1;
+    border-left: 2px lightgray solid;
+}
+
+ul {
+    /* list-style-type: '- '; */
+    padding-left: 1em;
+    /* margin-left: 0.5em; */
+}
+
+li {
+    /* margin: 0.5em 0em 0.5em 0.5em; */
+}
+
+/*******************************************************************/
+
+dl.contact-infos dt {
+    float: left;
+}
+
+dl.contact-infos dd {
+    margin: 0 0 0 5em;
+}
+
+/*******************************************************************/
+
+p.menu {
+    margin: 0.5em auto 0.5em auto;
+    /* text-align: center; */
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    hyphens: none;
+}
+
+p.download {
+    font-family: monospace;
+    text-align: left;
+    padding-left: 2em;
+}
+
+p.joint-work {
+    text-align: right;
+}
+
+p.joint-work a {
+    white-space: nowrap;
+}
+
+.float-right-when-possible {
+    border: 0;
+    margin: 0;
+    float: right;
+}
+
+li {
+    padding-left: 0.25em;
+}
+
+li.dimmed {
+    color: #c0c0c0;
+    background-color: inherit;
+}
+
+
+.float-right {
+    float: right;
+}
+
+a.button {
+    background-color: #1e90ff;
+    border: black 1px;
+    border-radius: 5px;
+    color: white;
+    margin: 2ex;
+    text-align: center;
+    padding: 2ex;
+    width: 80%;
+    display: block;
+    text-decoration: none;
+    line-height: 1.5;
+    font-weight: bold;
+    font-size: 110%;
+    /* box-shadow: 0px 0px 5px black; */
+}
+
+a.button:hover {
+    background-color: #4169e1;
+}
+
+a.button:active {
+  /* background-color: #3e8e41; */
+  /* box-shadow: 0 5px #666; */
+  transform: translateY(2px);
+}
+
+/*********************************************************************
+                    Tight layout for small screens
+*********************************************************************/
+
+@media (max-width: 35em) {
+    body {
+        line-height: 0;
+        padding: 0 0.5em 0 0.5em;
+        text-align: left;
+    }
+
+
+    .float-right {
+        float: none;
+    }
+
+    hr {
+        display: none;
+    }
+
+    .float-right-when-possible {
+        float: none;
+    }
+
+
+    dl.contact-infos dt {
+        float: none;
+        width: 100%;
+    }
+
+    dl.contact-infos dd {
+        margin: 0.5em 0 0.5em 1em;
+    }
+
+    li {
+        padding-left: 0;
+    }
+}
+
+/*********************************************************************
+ Expanded layout with menus moved to the left margin for large screens
+*********************************************************************/
+
+@media (min-width: 55em) {
+    div.outermenu {
+        position: relative;
+        left: -7em;
+    }
+
+    p.menu {
+        text-align: left;
+        position: fixed;
+        top: 1em;
+        z-index: 1000;
+        background-color: rgba(255, 255, 255, 0.9);
+        /* right: 1em; */
+    }
+
+    p.menu a {
+        display: block;
+        /* text-transform: capitalize; */
+    }
+
+    .separator-for-tight-layout {
+        display: none;
+    }
+
+    .with-springs {
+        position: relative;
+    }
+
+    .with-springs span.spring {
+        position: absolute;
+        display: inline;
+        width: 9em;
+        top: 0;
+        left: -11em;
+        text-align: right;
+        padding: 0;
+    }
+}
+
+/*********************************************************************
+      For printing, hide menus and footer, make links black
+*********************************************************************/
+
+@media print {
+    p.menu {
+        display: none;
+    }
+
+    span.spring {
+        display: none;
+    }
+
+    p.footer {
+        display: none;
+    }
+
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+
+    .collapsible-content { display: block; }
+    .collapsible-mark { display: none; }
+}
+
+/********************************************************************/
