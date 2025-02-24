@@ -11,7 +11,7 @@ More formally, if the running time of the algorithm is denoted by $T(n)$, then t
 $$T(n) = \color{red}{a}\color{black}T(n/\color{blue}{b}\color{black}) + \color{green}f(n)$$
 where $\color{red}a$ and $\color{blue}{b}$ are constants, and $\color{green}f$ represents the running time of combining the solutions of the subproblems (step 3 above). 
 
-You probably also remember the Master Theorem as a set of 3 rules that you need to either memorize or look up every time you need to use it. In this post, I will try to give you an intuition behind the Master Theorem. It will help you understand and remember the theorem. But the intuition will also useful on its own, *to find the time complexity of algorithms that do not fit the form of the Master Theorem*. More on that later.
+You probably also remember the Master Theorem as a set of 3 rules that you need to either memorize or look up every time you need to use it. In this post, I will try to give you an intuition behind the Master Theorem. It will help you understand and remember the theorem. But the intuition will also useful on its own, *to find the time complexity of algorithms that do not fit the form of the Master Theorem*. More on that later. I got this intuition from Prof. Michael Kapralov's lectures on algorithms at EPFL. 
 
 First, let's state the Master Theorem: 
 <center><img src="../assets/master-thm/master_thm_statement_box.png" alt="alt text" style="width: 80%;"></center>
