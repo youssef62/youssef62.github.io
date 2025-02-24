@@ -48,7 +48,7 @@ Let's observe that the first function call (**the root of the tree**) takes $f(n
 <!-- The first case assumes that $f(n) = O(n^{\log_b a - \epsilon})$, meaning that $f$ is asymptotically smaller that $n^{\log_b a}$. This intuitively means that *the work done is concentrated at the leaves*. So total runtime will be the total runtime *of the leaves*. And this is indeed the case, as the master theorem gives us that $T(n) = \Theta(n^{\log_b a})$.  -->
 
 Provided with this, we can give an intuitive, unformal, statement of the master theorem : 
-<div style="position: absolute; width: 70%; padding: 10px;">
+<div style="position: relative; width: 180%;">
   <table style="width: 100%; table-layout: fixed;">
     <tr>
       <td style="vertical-align: top;">
@@ -56,7 +56,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       </td>
       <td style="padding: 0 10%; vertical-align: top;">
         <b>work is concentrated at the leaves</b><br>
-        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "less" than the total runtime.<br>
+        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"$^1$ than the total runtime.<br>
         <b>total runtime is the total runtime of the leaves</b><br>
         $T(n) = \Theta(n^{\log_b a})$<br><br>
       </td>
@@ -80,7 +80,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       </td>
       <td style="padding: 0 10%; vertical-align: top;">
         <b>work is concentrated at the root</b><br>
-        $f(n) = \Omega(n^{\log_b a + \epsilon})$, so it's "more" than the leaves' total runtime.<br>
+        $f(n) = \Omega(n^{\log_b a + \epsilon})$, so it's "greater"$^1$ than the leaves' total runtime.<br>
         <b>total runtime is the total runtime of the root</b><br>
         $T(n) = \Theta(f(n))$<br><br>
       </td>
@@ -88,9 +88,26 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
   </table>
 </div>
 
-<div style="clear: both;"></div>
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
-<br><br><br><br><br><br>
 Basically, each case of the master theorem is a comparison between the work done at the root and the work done at the leaves. The three cases correspond to when the leaves dominate, when both are equal, and when the root dominates. And the total runtime is the total runtime of the dominating part (or $\text{height}\times \text{work per level}$ when they are equal).
 
+### Application of the intuition of non-Master Theorem recurrences 
+Let's consider the following recurrence : 
+$$T(n) = T(n/4) + T(3n/4) + n^2$$
+This recurrence does not fit the form of the Master Theorem. However, we can still use the intuition we developed to have a good guess of the time complexity, which we confirm by a proof by induction. 
 
+The root of the tree takes $n^2$ time. Its children take $(\frac{3n}{4})^2$ and $(\frac{n}{4})^2$ each. So the second level of the tree takes $\frac{10n}{16}$ time. We can also check the third level. What we find is that the work done at each level is decreasing. Meaning that *intuitively* the work will concentrate at the root. So a good guess would be that $T(n) = O(f(n))$. 
+
+<center><img src="../assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;"></center>
+
+Let's prove this by induction. The base case is trivial. For the induction step, we assume that $T(k) \leq c k^2$ for all $k < n$. Then we have :
+$$T(n) = T(n/4) + T(3n/4) + n^2 \leq c \left( \frac{n}{4} \right)^2 + c \left( \frac{3n}{4} \right)^2 + n^2 = (1+\frac{9c}{16}) n^2 \leq c n^2$$
+
+if we choose $c \geq 16/7$. Which ends the proof and confirms our guess. 
+
+Now let's change $f(n)$ to $n$. We get the recurrence : 
+$$T(n) = T(n/4) + T(3n/4) + n$$
+This time, the root takes $n$ time, and its children take $\frac{3n}{4}$ and $\frac{n}{4}$ each. So the second level of the tree takes $n$ time. We can check that it will be the same for next levels. So the work is concentrated at the leaves. A good guess would be that $T(n) = O(n \log n)$. Which we also can prove by induction. 
+
+
+<center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 70%;"></center>
+[^1]: "smaller" or "greater" here are the asymptotic sense. 
