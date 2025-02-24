@@ -48,45 +48,49 @@ Let's observe that the first function call (**the root of the tree**) takes $f(n
 <!-- The first case assumes that $f(n) = O(n^{\log_b a - \epsilon})$, meaning that $f$ is asymptotically smaller that $n^{\log_b a}$. This intuitively means that *the work done is concentrated at the leaves*. So total runtime will be the total runtime *of the leaves*. And this is indeed the case, as the master theorem gives us that $T(n) = \Theta(n^{\log_b a})$.  -->
 
 Provided with this, we can give an intuitive, unformal, statement of the master theorem : 
-
-
-<div style="position: absolute; width:70%;">
-  <table>
+<div style="position: absolute; width: 70%; padding: 10px;">
+  <table style="width: 100%; table-layout: fixed;">
     <tr>
-      <td>1.<span style="color:blue;">
-      If the <b>work is concentrated at the leaves</b>, then the <b>total runtime is the total runtime of the leaves</b>.
-      </span><br><br><br><br><br><br>
+      <td style="vertical-align: top;">
+        1. <span style="color:blue;">If the <b>work is concentrated at the leaves</b>, then the <b>total runtime is the total runtime of the leaves</b>.</span><br><br>
       </td>
-      <td style="padding: 0 10%;"><br>
-      <b>work is concentrated at the leaves</b> <br>
-      $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "less" total runtime. <br>
-      <b>total runtime is the total runtime of the leaves</b> <br>
-      $T(n) = \Theta(n^{\log_b a})$
+      <td style="padding: 0 10%; vertical-align: top;">
+        <b>work is concentrated at the leaves</b><br>
+        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "less" than the total runtime.<br>
+        <b>total runtime is the total runtime of the leaves</b><br>
+        $T(n) = \Theta(n^{\log_b a})$<br><br>
       </td>
     </tr>
     <tr>
-      <td>2. <span style="color:red;">If the <b>work at each level of the tree is the same</b>, then the total runtime is equal to: $$\textbf{work per level} \times \textbf{height}$$ </span></td>
-      <td style="padding: 0 10%;"><br><br> <br><b>work at each level of the tree is the same</b><br>
-      work at root = work at leaf<br>
-      $f(n) = \Theta(n^{\log_b a})$<br> 
-      $\textbf{work per level}\times \textbf{height}$
-      $ n^{\log_b a} \times \log_b(n)$
+      <td style="vertical-align: top;"> 
+        2. <span style="color:red;">If the <b>work at each level of the tree is the same</b>, then the total runtime is equal to: $$\textbf{work per level} \times \textbf{height}$$</span><br><br>
+      </td>
+      <td style="padding: 0 10%; vertical-align: top;">
+        <b>work at each level of the tree is the same</b><br>
+        work at root = work at leaf<br>
+        $f(n) = \Theta(n^{\log_b a})$<br> 
+        $\textbf{work per level} \times \textbf{height}$<br>
+        $n^{\log_b a} \times \log_b(n)$<br><br>
       </td>
     </tr>
+    <br><br><br>
     <tr>
-      <td>3. <span style="color:green;">
-      If the <b>work is concentrated at the root</b>, then the <b>total runtime is the total runtime of the root</b>.
-      </span></td>
-      <td style="padding: 0 10%;"><br><br><br><br><br>
-      <b>work is concentrated at the root</b><br>
+      <td style="vertical-align: top;">
+        3. <span style="color:green;">If the <b>work is concentrated at the root</b>, then the <b>total runtime is the total runtime of the root</b>.</span><br><br>
+      </td>
+      <td style="padding: 0 10%; vertical-align: top;">
+        <b>work is concentrated at the root</b><br>
         $f(n) = \Omega(n^{\log_b a + \epsilon})$, so it's "more" than the leaves' total runtime.<br>
         <b>total runtime is the total runtime of the root</b><br>
-        $T(n) = \Theta(f(n))$
-
+        $T(n) = \Theta(f(n))$<br><br>
       </td>
     </tr>
   </table>
 </div>
 
-Basically, each case of the master theorem is a comparison between the work done at the root and the work done at the leaves. The three cases correspond to when the leaves dominate, when they are equal, and when the root dominates. And the total runtime is the total runtime of the dominating part (or the total runtime of the tree if they are equal). 
+<div style="clear: both;"></div>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br>
+Basically, each case of the master theorem is a comparison between the work done at the root and the work done at the leaves. The three cases correspond to when the leaves dominate, when they are equal, and when the root dominates. And the total runtime is the total runtime of the dominating part (or the total runtime of the tree if they are equal).
+
 
