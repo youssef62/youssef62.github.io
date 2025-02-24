@@ -1,3 +1,4 @@
+
 # Master Theorem: An Intuition 
 
 If you are taking a course in algorithms, you have probably encountered the Master Theorem. It is a tool that helps you compute the time complexity of a divide-and-conquer algorithm of the form : 
@@ -95,7 +96,7 @@ Let's consider the following recurrence :
 $$T(n) = T(n/4) + T(3n/4) + n^2$$
 This recurrence does not fit the form of the Master Theorem. However, we can still use the intuition we developed to have a good guess of the time complexity, which we confirm by a proof by induction. 
 
-The root of the tree takes $n^2$ time. Its children take $(\frac{3n}{4})^2$ and $(\frac{n}{4})^2$ each. So the second level of the tree takes $\frac{10n}{16}$ time. We can also check the third level. What we find is that the work done at each level is decreasing. Meaning that *intuitively* the work will concentrate at the root. So a good guess would be that $T(n) = O(f(n))$. 
+The root of the tree takes $n^2$ time. Its children take $(\frac{3n}{4})^2$ and $(\frac{n}{4})^2$ each. So the second level of the tree takes $\frac{10n^2}{16}$ time. We can also check the third level. What we find is that the work done at each level is decreasing. Meaning that *intuitively* the work will concentrate at the root. So a good guess would be that $T(n) = O(f(n))$. 
 
 <center><img src="../assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;"></center>
 
