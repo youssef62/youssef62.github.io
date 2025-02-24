@@ -113,3 +113,5 @@ This time, the root takes $n$ time, and its children take $\frac{3n}{4}$ and $\f
 <center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 60%;"></center>
 [^1]: "smaller" or "greater" here are the asymptotic sense. 
 
+
+![alt text](image.png)
