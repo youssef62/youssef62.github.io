@@ -122,7 +122,7 @@ $$T(n) = T(n/4) + T(3n/4) + n^2 \leq c \left( \frac{n}{4} \right)^2 + c \left( \
 <p>Now let's change $f(n)$ to $n$. We get the recurrence : 
 $$T(n) = T(n/4) + T(3n/4) + n$$
 This time, the root takes $n$ time, and its children take $\frac{3n}{4}$ and $\frac{n}{4}$ each. So the second level of the tree takes $n$ time. We can check that it will be the same for next levels. So the work is concentrated at the leaves. A good guess would be that $T(n) = O(n \log n)$. Which we also can prove by induction. </p>
-<p><center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 70%;"></center></p>
+<p><center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 60%;"></center></p>
 <div class="footnote">
 <hr />
 <ol>
