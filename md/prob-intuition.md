@@ -92,7 +92,7 @@ A random variable here would be a function[^1] from $\Omega$ to $\mathbb{R}$. Le
 
 * **Example 1**: Let $X$ and $Y$ such that $X(0) = 0$ and $X(1) = 1$ and $Y(0) = 0$ and $Y(1) = 1$.
 These two random variables are equal, so they have the same distribution.
-<center><img src="../assets/cdf.svg" alt="alt text" style="width: 60%;"></center>
+<center><img src="../assets/prob-intuition/cdf.svg" alt="alt text" style="width: 60%;"></center>
 
 * **Example 2**: Let $X$ and $Y$ such that $X(0) = 0$ and $X(1) = 1$ and $Y(0) = 1$ and $Y(1) = 0$.
 In this case, $Y=1-X$. However, they have the same distribution (and thus the same CDF, the one above). 
