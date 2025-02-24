@@ -90,7 +90,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
 
 <div style="clear: both;"></div>
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
-<br><br><br><br><br><br><br><br>
-Basically, each case of the master theorem is a comparison between the work done at the root and the work done at the leaves. The three cases correspond to when the leaves dominate, when they are equal, and when the root dominates. And the total runtime is the total runtime of the dominating part (or the total runtime of the tree if they are equal).
+<br><br><br><br><br><br>
+Basically, each case of the master theorem is a comparison between the work done at the root and the work done at the leaves. The three cases correspond to when the leaves dominate, when both are equal, and when the root dominates. And the total runtime is the total runtime of the dominating part (or $\text{height}\times \text{work per level}$ when they are equal).
 
 
