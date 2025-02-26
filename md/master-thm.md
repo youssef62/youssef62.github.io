@@ -57,7 +57,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       </td>
       <td style="padding: 0 10%; vertical-align: top;">
         <b>work is concentrated at the leaves</b><br>
-        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"$^1$ than the total runtime.<br>
+        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"$^1$ than the work done at the leafs.<br>
         <b>total runtime is the total runtime of the leaves</b><br>
         $T(n) = \Theta(n^{\log_b a})$<br><br>
       </td>
