@@ -1,7 +1,10 @@
-[Homepage](../../html/homepage.html)
+<!-- [Homepage](../../html/homepage.html) -->
 
 # Data intensive systems
-Notes taken for EPFL's CS300 course by Youssef Boughizane. There are probably some mistakes and typos. If you find any, please submit a PR to https://github.com/youssef62/youssef62.github.io or write me. 
+
+By Youssef Boughizane
+
+Notes taken for EPFL's CS300 course. There are probably some mistakes and typos. If you find any, please submit a PR to https://github.com/youssef62/youssef62.github.io or write me. 
 [TOC]
 
 # SQL 
