@@ -1,4 +1,4 @@
-<!-- [Homepage](../../html/homepage.html) -->
+[Homepage](../../html/homepage.html) 
 
 # Data intensive systems
 
