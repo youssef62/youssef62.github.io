@@ -1,3 +1,5 @@
+<span style="position: absolute; left:10%; ">[Homepage](../html/homepage.html)
+
 # Data intensive systems
 Notes taken for EPFL's CS300 course by Youssef Boughizane. There are probably some mistakes and typos. If you find any, please make a PR to https://github.com/youssef62/youssef62.github.io or write me. 
 [TOC]
