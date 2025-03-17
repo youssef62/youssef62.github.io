@@ -1,4 +1,9 @@
-#	Functional Programming 
+[Homepage](../../html/homepage.html) 
+
+# Functional Programming 
+By Youssef Boughizane
+
+Notes taken for EPFL's CS210 course. There are probably some mistakes and typos. If you find any, please submit a PR to https://github.com/youssef62/youssef62.github.io or write me. 
 
 {:toc}
 
