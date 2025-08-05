@@ -12,7 +12,3 @@ Blog posts:
 * [Master Theorem: An Intuition](master-thm.html) 
 <!-- * [Intuition behind some probability concepts](prob-intuition.html)   -->
 
-Univesity lecture notes : 
-
-* [CS300-Data Intensive Systems](../lec-notes/DIS/Cours.html) [[PDF](../lec-notes/DIS/Cours.pdf)]
-* [CS210-Functional programming](../lec-notes/FUNPROG/Cours.html) [[PDF](../lec-notes/FUNPROG/Cours.pdf)]

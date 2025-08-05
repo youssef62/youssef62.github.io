@@ -16,14 +16,14 @@ body {
     /* font-family: "Open Sans", "Bitstream Vera Sans", sans-serif; */
 
     color: rgba(0, 0, 0, 0.881);
-    background-color: white;
+    background-color: rgb(255, 253, 253);
 
     font-size: 12pt;
-    max-width: 40em;
+    max-width: 55em;
 
     line-height: 1.2;
-    padding: 0 1em 0 1em;
-    margin: 0 auto 0 auto;
+    padding: 0 1em 0 0em;
+    margin: 0 auto 0 10em;
 
     font-weight: 300;
     -webkit-hyphens: auto;
@@ -315,3 +315,28 @@ a.button:active {
 }
 
 /********************************************************************/
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 1em;
+    background-color: #f9f9f9;
+}
+
+
+table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+table tr:nth-child(even) {
+    background-color: #fdfdfd;
+}
+
+
+/***************************************************************************/ 
+
+figure {
+    margin: 2em 0;
+    text-align: center;
+} 

@@ -1,4 +1,4 @@
-<span style="position: absolute; left:10%; ">[Homepage](homepage.html)
+<span style="position: absolute; left:3%; ">[Homepage](homepage.html)
 # Master Theorem: An Intuition 
 
 If you are taking a course in algorithms, you have probably encountered the Master Theorem. It is a tool that helps you compute the time complexity of a divide-and-conquer algorithm of the form : 
@@ -49,13 +49,13 @@ Let's observe that the first function call (**the root of the tree**) takes $f(n
 <!-- The first case assumes that $f(n) = O(n^{\log_b a - \epsilon})$, meaning that $f$ is asymptotically smaller that $n^{\log_b a}$. This intuitively means that *the work done is concentrated at the leaves*. So total runtime will be the total runtime *of the leaves*. And this is indeed the case, as the master theorem gives us that $T(n) = \Theta(n^{\log_b a})$.  -->
 
 Provided with this, we can give an intuitive, unformal, statement of the master theorem : 
-<div style="position: relative; width: 180%;">
-  <table style="width: 100%; table-layout: fixed;">
-    <tr>
+<div style="position: relative; width: 145%;">
+  <table style="all: unset;width: 100%; table-layout: fixed;">
+    <tr >
       <td style="vertical-align: top;">
         1. <span style="color:blue;">If the <b>work is concentrated at the leaves</b>, then the <b>total runtime is the total runtime of the leaves</b>.</span><br><br>
       </td>
-      <td style="padding: 0 10%; vertical-align: top;">
+      <td style="padding: 0 5%; vertical-align: top; width: 30%;">
         <b>work is concentrated at the leaves</b><br>
         $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"$^1$ than the work done at the leafs.<br>
         <b>total runtime is the total runtime of the leaves</b><br>
@@ -66,7 +66,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       <td style="vertical-align: top;"> 
         2. <span style="color:red;">If the <b>work at each level of the tree is the same</b>, then the total runtime is equal to: $$\textbf{work per level} \times \textbf{height}$$</span><br><br>
       </td>
-      <td style="padding: 0 10%; vertical-align: top;">
+      <td style="padding: 0 5%; vertical-align: top; width: 30%;">
         <b>work at each level of the tree is the same</b><br>
         work at root = work at leaf<br>
         $f(n) = \Theta(n^{\log_b a})$<br> 
@@ -79,7 +79,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       <td style="vertical-align: top;">
         3. <span style="color:green;">If the <b>work is concentrated at the root</b>, then the <b>total runtime is the total runtime of the root</b>.</span><br><br>
       </td>
-      <td style="padding: 0 10%; vertical-align: top;">
+      <td style="padding: 0 5%; vertical-align: top; width:30%;">
         <b>work is concentrated at the root</b><br>
         $f(n) = \Omega(n^{\log_b a + \epsilon})$, so it's "greater"$^1$ than the leaves' total runtime.<br>
         <b>total runtime is the total runtime of the root</b><br>

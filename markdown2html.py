@@ -13,8 +13,13 @@ def markdown_to_html_with_css(input_file, output_file, css_file):
         markdown_content = f.read()
     
     # Convert Markdown to HTML
-    html_body = markdown.markdown(markdown_content, extensions=[ExtraExtension()])
-    
+    html_body = markdown.markdown(
+        markdown_content,
+        extensions=[
+            'markdown.extensions.extra',
+            'markdown.extensions.codehilite'
+        ]
+    )
     # Extract the first H1 title
     match = re.search(r'<h1>(.*?)</h1>', html_body, re.IGNORECASE)
     title = match.group(1) if match else "Markdown with LaTeX"
@@ -26,6 +31,7 @@ def markdown_to_html_with_css(input_file, output_file, css_file):
     <meta charset="utf-8">
     <title>{title}</title>
     <link rel="stylesheet" href="{css_file}">
+    <link rel="stylesheet" href="pygments.css">
     <script type="text/javascript" async>
       MathJax = {{
         tex: {{
