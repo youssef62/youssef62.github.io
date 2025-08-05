@@ -304,9 +304,11 @@ ncu<span class="w"> </span>--set<span class="w"> </span>full<span class="w"> </s
 <p>A factor of approximaly <strong>5.16x</strong> improvement over the naive kernel and a factor of <strong>5.24x</strong> over the shared memory kernel! </p>
 <h2>Micro-optimizations</h2>
 <p>First, all the kernels above initialize <code>cmem_mask</code> to a size of 2048 instead of 2047. I noticed it improves the perfermance slightly.</p>
-<p>These are the <em>micro-optimizations</em> I added to the previous kernels and that worked : 
-- Using <code>__ldg(input+global_idx)</code> instead of <code>input[global_idx]</code> to read from global memory. This uses a read-only cache that can improve performance for our constant data. 
-- <code>__align__(64) float cmem_mask[MASK_SIZE];</code> to align the constant memory to 64 bytes. This is the size of a cache line, and it can improve cache performance. I am not an expert on this, if you know more about this or have good resources, please let me know. </p>
+<p>These are the <em>micro-optimizations</em> I added to the previous kernels and that worked :</p>
+<ul>
+<li>Using <code>__ldg(input+global_idx)</code> instead of <code>input[global_idx]</code> to read from global memory. This uses a read-only cache that can improve performance for our constant data. </li>
+<li><code>__align__(64) float cmem_mask[MASK_SIZE];</code> to align the constant memory to 64 bytes. This is the size of a cache line, and it can improve cache performance. I am not an expert on this, if you know more about this or have good resources, please let me know. </li>
+</ul>
 <p>With these additions, we get the following results : </p>
 <div class="codehilite"><pre><span></span><code><span class="n">naive</span><span class="w">     </span><span class="o">:</span><span class="w"> </span><span class="mf">4.60465</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.889101</span><span class="w"> </span><span class="n">GFLOPS</span>
 <span class="n">smem</span><span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="mf">4.67256</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.876179</span><span class="w"> </span><span class="n">GFLOPS</span>
