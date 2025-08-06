@@ -1,342 +1,189 @@
-/* -*- mode: rainbow; mode: css; -*-
-
-   CSS level 3 with vendor extensions for hyphenation.
-
-*/
-
-/* @import url("./OpenSans/OpenSans.css"); */
+/* Academic-style CSS for Pandoc output */
 
 body {
     font-family: sans-serif;
-
-    /* font-family: "Merriweather"; */
-
-    text-align: justify;
-    /* font-family: monospace; */
-    /* font-family: "Open Sans", "Bitstream Vera Sans", sans-serif; */
-
     color: rgba(0, 0, 0, 0.881);
     background-color: rgb(255, 253, 253);
-
+    
     font-size: 12pt;
-    max-width: 55em;
-
-    line-height: 1.2;
-    padding: 0 1em 0 0em;
-    margin: 0 auto 0 10em;
-
     font-weight: 300;
+    line-height: 1.2;
+    
+    max-width: 55em;
+    margin: 0 auto;
+    padding: 0 1em;
+    text-align: justify;
+    
     -webkit-hyphens: auto;
     -moz-hyphens: auto;
     hyphens: auto;
 }
 
-div.important {
-    background: rgb(255, 255, 100);
-    padding: 0em;
-    margin: 0em;
+/* Typography */
+h1 {
+    font-size: 275%;
+    font-weight: 400;
+    text-align: left;
+    margin-top: 1.5em;
 }
 
-.collapsible-input { display: none; }
-
-.collapsible-input         + .collapsible-title + .collapsible-content { display: none; margin: 1.0em 0.0em 1.0em 0.0em; }
-.collapsible-input:checked + .collapsible-title + .collapsible-content { display: block; }
-
-.collapsible-input         + .collapsible-title .collapsible-mark { display: inline; color: #0000d0; }
-.collapsible-input:checked + .collapsible-title .collapsible-mark { display: none; }
-
-hr {
-    margin: 1.5em auto 1.5em auto;
-    width: 1em;
+h2 {
+    font-size: 150%;
+    font-weight: 500;
+    text-align: left;
+    margin-top: 1.2em;
 }
 
+h3 {
+    font-size: 100%;
+    font-weight: 600;
+    text-align: left;
+    margin-top: 1em;
+}
+
+/* Links */
 a {
     color: #0000d0;
     text-decoration: none;
-}
-
-a:visited {
-    background-color: inherit;
 }
 
 a:hover {
     text-decoration: underline;
 }
 
-p.footer {
-    display: none;
-    text-align: right;
-    margin-top: 1em;
-    margin-bottom: 0.5em;
-}
-
-div.highlighted {
-    background-color: yellow;
-    padding: 0.0em 0.5em 0.0em 0.5em;
-}
-
-div.highlighted a {
-    text-decoration: underline;
-}
-
-/*******************************************************************/
-
-h1 {
-    text-align: left;
-    font-size: 275%;
-    font-weight: 400;
-    /* text-transform: uppercase; */
-}
-
-h2 {
-    text-align: left;
-    font-size: 150%;
-    font-weight: 500;
-    /* text-transform: uppercase; */
-}
-
-h3 {
-    text-align: left;
-    font-size: 100%;
-}
-
-/*******************************************************************/
-
-address {
-    font-style: normal;
-}
-
-pre.code {
+/* Code blocks (Pandoc generates these) */
+pre {
     font-family: monospace;
     text-align: left;
-    padding-left: 1em;
-    margin-left: 1em;
+    padding: 0.5em 0 0.5em 1em;
+    margin: 1em 0 1em 1em;
     line-height: 1.1;
     border-left: 2px lightgray solid;
+    background-color: #f8f8f8;
+    overflow-x: auto;
+    color: #333; /* Explicit text color */
 }
 
-ul {
-    /* list-style-type: '- '; */
-    padding-left: 1em;
-    /* margin-left: 0.5em; */
+pre code {
+    background-color: transparent; /* Remove background from code inside pre */
+    padding: 0;
+    border-radius: 0;
 }
 
-li {
-    /* margin: 0.5em 0em 0.5em 0.5em; */
-}
-
-/*******************************************************************/
-
-dl.contact-infos dt {
-    float: left;
-}
-
-dl.contact-infos dd {
-    margin: 0 0 0 5em;
-}
-
-/*******************************************************************/
-
-p.menu {
-    margin: 0.5em auto 0.5em auto;
-    /* text-align: center; */
-    -webkit-hyphens: none;
-    -moz-hyphens: none;
-    hyphens: none;
-}
-
-p.download {
+code {
     font-family: monospace;
-    text-align: left;
-    padding-left: 2em;
+    background-color: #f0f0f0;
+    padding: 0.1em 0.3em;
+    border-radius: 2px;
+    color: #333; /* Explicit text color */
 }
 
-p.joint-work {
-    text-align: right;
+/* Fix text selection in code blocks */
+pre::selection, pre code::selection {
+    background-color: #b3d4fc;
+    color: inherit;
 }
 
-p.joint-work a {
-    white-space: nowrap;
+pre::-moz-selection, pre code::-moz-selection {
+    background-color: #b3d4fc;
+    color: inherit;
 }
 
-.float-right-when-possible {
-    border: 0;
-    margin: 0;
-    float: right;
+/* Lists */
+ul, ol {
+    padding-left: 1.5em;
 }
 
 li {
     padding-left: 0.25em;
+    margin: 0.3em 0;
 }
 
-li.dimmed {
-    color: #c0c0c0;
-    background-color: inherit;
-}
-
-
-.float-right {
-    float: right;
-}
-
-a.button {
-    background-color: #1e90ff;
-    border: black 1px;
-    border-radius: 5px;
-    color: white;
-    margin: 2ex;
-    text-align: center;
-    padding: 2ex;
-    width: 80%;
-    display: block;
-    text-decoration: none;
-    line-height: 1.5;
-    font-weight: bold;
-    font-size: 110%;
-    /* box-shadow: 0px 0px 5px black; */
-}
-
-a.button:hover {
-    background-color: #4169e1;
-}
-
-a.button:active {
-  /* background-color: #3e8e41; */
-  /* box-shadow: 0 5px #666; */
-  transform: translateY(2px);
-}
-
-/*********************************************************************
-                    Tight layout for small screens
-*********************************************************************/
-
-@media (max-width: 35em) {
-    body {
-        line-height: 0;
-        padding: 0 0.5em 0 0.5em;
-        text-align: left;
-    }
-
-
-    .float-right {
-        float: none;
-    }
-
-    hr {
-        display: none;
-    }
-
-    .float-right-when-possible {
-        float: none;
-    }
-
-
-    dl.contact-infos dt {
-        float: none;
-        width: 100%;
-    }
-
-    dl.contact-infos dd {
-        margin: 0.5em 0 0.5em 1em;
-    }
-
-    li {
-        padding-left: 0;
-    }
-}
-
-/*********************************************************************
- Expanded layout with menus moved to the left margin for large screens
-*********************************************************************/
-
-@media (min-width: 55em) {
-    div.outermenu {
-        position: relative;
-        left: -7em;
-    }
-
-    p.menu {
-        text-align: left;
-        position: fixed;
-        top: 1em;
-        z-index: 1000;
-        background-color: rgba(255, 255, 255, 0.9);
-        /* right: 1em; */
-    }
-
-    p.menu a {
-        display: block;
-        /* text-transform: capitalize; */
-    }
-
-    .separator-for-tight-layout {
-        display: none;
-    }
-
-    .with-springs {
-        position: relative;
-    }
-
-    .with-springs span.spring {
-        position: absolute;
-        display: inline;
-        width: 9em;
-        top: 0;
-        left: -11em;
-        text-align: right;
-        padding: 0;
-    }
-}
-
-/*********************************************************************
-      For printing, hide menus and footer, make links black
-*********************************************************************/
-
-@media print {
-    p.menu {
-        display: none;
-    }
-
-    span.spring {
-        display: none;
-    }
-
-    p.footer {
-        display: none;
-    }
-
-    a {
-        color: black;
-        text-decoration: underline;
-    }
-
-    .collapsible-content { display: block; }
-    .collapsible-mark { display: none; }
-}
-
-/********************************************************************/
+/* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 1em 0;
-    font-size: 1em;
     background-color: #f9f9f9;
 }
-
 
 table th {
     background-color: #f0f0f0;
     font-weight: bold;
+    padding: 0.5em;
+    text-align: left;
+}
+
+table td {
+    padding: 0.5em;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 table tr:nth-child(even) {
     background-color: #fdfdfd;
 }
 
+/* Math display (for KaTeX/MathJax) */
+.math {
+    overflow-x: auto;
+}
 
-/***************************************************************************/ 
+/* Blockquotes */
+blockquote {
+    margin: 1em 2em;
+    padding-left: 1em;
+    border-left: 3px solid #ddd;
+    font-style: italic;
+}
 
+/* Figures */
 figure {
     margin: 2em 0;
     text-align: center;
-} 
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 35em) {
+    body {
+        font-size: 11pt;
+        line-height: 1.3;
+        padding: 0 0.5em;
+        text-align: left;
+        margin: 0;
+    }
+    
+    h1 { font-size: 200%; }
+    h2 { font-size: 130%; }
+    
+    pre {
+        margin-left: 0;
+        padding-left: 0.5em;
+    }
+    
+    ul, ol {
+        padding-left: 1em;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        font-size: 10pt;
+        max-width: none;
+        margin: 0;
+    }
+    
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+    
+    pre {
+        border-left: 1px solid black;
+    }
+}g
