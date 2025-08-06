@@ -169,7 +169,7 @@ the hardware can ideally perform<br />
 \frac{8.1408 \times 10^{12}}{320.06 \times 10^9} = 25.44\ \text{FLOPs}.
 \]</span></p>
 <p>Next, let’s look at how many FLOPs our naive kernel does per byte
-read—this is called the <strong>arithmetic intensity</strong> (AI).</p>
+read. This is called the <strong>arithmetic intensity</strong> (AI).</p>
 <p>Our kernel reads <span class="math inline">\(2 \cdot
 \text{mask\_size}\)</span> floats per output element (one for
 <code>input</code>, one for <code>mask</code>), so a total of <span
@@ -182,7 +182,7 @@ intensity is:</p>
 = \frac{1}{4}.
 \]</span></p>
 <p>This means the kernel does only <span class="math inline">\(0.25\
-\text{FLOPs}\)</span> per byte read—far below the hardware limit of
+\text{FLOPs}\)</span> per byte read; far below the hardware limit of
 <span class="math inline">\(25.44\)</span>. In other words, performance
 is limited by memory throughput, not computation. This is a
 <strong>memory-bound</strong> kernel. To improve performance, we must
