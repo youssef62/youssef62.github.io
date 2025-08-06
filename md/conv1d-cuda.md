@@ -1,13 +1,21 @@
-<link rel="icon" href="favicon.png" type="image/png">
+
+<span style="position: absolute; left:3%; top: 10%;">[Home](homepage.html)
+
+<link rel="icon" type="image/x-icon" href="../assets/conv1d-cuda/favicon.ico">
+
 
 # Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU
 
-I have been learning CUDA for the past few months. Recently, I came across LeetGPU, a platform with many CUDA challenges. I spent a few weeks thinking about how to optimize a 1D convolution kernel. After a few weeks of experimenting, debugging, and tuning, I managed to reach the top of the leaderboard on the NVIDIA T4 GPU. 
 
+I have been learning CUDA for the past few months. Recently, I came across LeetGPU, a platform with many CUDA challenges. I spent a few weeks thinking about how to optimize a 1D convolution kernel. After a few weeks of experimenting, debugging, and tuning, I managed to reach the top of the leaderboard on the NVIDIA T4 GPU. 
 <center><figure>
 <img src="../assets/conv1d-cuda/leaderboard.png" alt="LeetGPU Leaderboard" style="width: 50%; max-width: 500;"> 
 </figure></center>
-In this post, I’ll walk you through how I approached optimizing the 1D convolution kernel, from the initial naive version to the final implementation. I’ll also cover some of the key CUDA concepts and performance tricks that helped along the way.
+In this post, I’ll walk you through how I approached optimizing the 1D convolution kernel, from the initial naive version to the final implementation. I’ll also cover some of the key CUDA concepts and performance tricks that helped along the way. You can find the code on my 
+<a href="https://github.com/youssef62/conv1d-cuda" style="text-decoration: none;">
+  <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="20" style="vertical-align: middle; margin-right: 4px;">
+  GitHub
+</a>.
 
 ## Defining the Problem
 
@@ -90,7 +98,7 @@ cudaMemcpyToSymbol(cmem_mask, mask_data, sizeof(float) * mask_size);
 <figure style="text-align: center;">
   <img src="../assets/conv1d-cuda/smem_diagram.png" 
        alt="Shared Memory Diagram" 
-       style="width: 80%; max-width: 500px;">
+       style="width: 80%; max-width: 700px;">
   <figcaption>A block responsible for region output[i:j] it needs to access input[i:j+mask_size]</figcaption>
 </figure>
 
@@ -181,7 +189,7 @@ Instead of loading entries from `input` multiple times, each thread will load th
 <center><figure>
     <img src="../assets/conv1d-cuda/reg_blocking_diagram.png" 
          alt="Register Blocking Diagram" 
-         style="width: 80%; max-width: 500px;">
+         style="width: 80%; max-width: 700px;">
     <figcaption style="text-align: center;">The sliding window approach for register blocking with 2 outputs per thread. At each iteration, we reuse one input element from the registers and load a new one from smem</figcaption>
   </figure></center>
 
@@ -303,7 +311,8 @@ A factor of approximaly **5.16x** improvement over the naive kernel and a factor
 ## Micro-optimizations 
 First, all the kernels above initialize `cmem_mask` to a size of 2048 instead of 2047. I noticed it improves the perfermance slightly.
 
-These are the *micro-optimizations* I added to the previous kernels and that worked : 
+These are the *micro-optimizations* I added to the previous kernels and that worked :
+ 
 - Using `__ldg(input+global_idx)` instead of `input[global_idx]` to read from global memory. This uses a read-only cache that can improve performance for our constant data. 
 - `__align__(64) float cmem_mask[MASK_SIZE];` to align the constant memory to 64 bytes. This is the size of a cache line, and it can improve cache performance. I am not an expert on this, if you know more about this or have good resources, please let me know. 
 
@@ -319,4 +328,6 @@ I also tried vectorizing the kernel using `float4` types, but it didn't improve 
 
 ## Conclusion 
 Shared memory does not always improve performance. In these cases, profiling is key to understand the bottlenecks. In memory-bound kernels, increases the computation per memory access is the way to go. 
+
+
 

@@ -1,106 +1,228 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-    <meta charset="utf-8">
-    <title>Intuition behind some probability concepts</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="pygments.css">
-    <script type="text/javascript" async>
-      MathJax = {
-        tex: {
-          inlineMath: [['$', '$']],  /* Support for inline LaTeX */
-          displayMath: [['$$', '$$']]  /* Support for block LaTeX */
-        },
-        options: {
-          renderActions: {
-            addMenu: [0]  /* Disable MathJax menu */
-          }
-        }
-      };
-    </script>
-    <script type="text/javascript" async
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-    </script>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>prob-intuition</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
 </head>
 <body>
-<h1>Intuition behind some probability concepts</h1>
-<p>These are some intuitions that I have either read or developed over the years. Most of them are accessible after an introductory course in probability.  </p>
-<h2>Markov's inequality</h2>
-<p>I did not come up with this intuition myself, I picked it up from Prof. Kapralov's lectures on algorithms. Although it's so fundamental that it's likely to be found in other places.</p>
-<p>Suppose we have a population in which <em>the average salary</em> is 6000\$. We want to know the maximal proportion of the population can earn at least 8000\$. Let's start simple. </p>
-<p>Can everyone earn at least 8000\$? No, because the average would be <em>higher</em> than 6000\$. </p>
-<p>Can half the population earn at least 8000\$? Yes, if half the population earns 8000\$ and the other half earns 4000\$, the average would be 6000\$. </p>
-<p>So we know the answer lies between 50% and 100%. </p>
-<p>Now, let's consider 75%. If 75% of the population earns 8000\$, and the rest earns 0\$. The average would be 6000\$. </p>
-<p>Can we do better? No, because if we increase the proportion of people earning 8000\$, the average would increase, as we are already giving the least amount possible to the rest of the population.</p>
-<p>What's so special about 75%? It's the ratio : 6000/8000 = average / k. Where k is the amount that we are interested in. So we established that: 
-$$ \color{red}{\text{proportion earning at least 8000\$}} \color{black}\leq \frac{\color{blue}{\text{average salary}}}{\color{green}{8000\$}}$$</p>
-<p>Now, if we think of the salaries as a non-negative random variable $X$, of the average salary as $\mathbb{E}(X)$, and the amount we are interested in as $k$, we get the Markov inequality:</p>
-<!-- color corresponding quantites above -->
-
-<p>$$ \color{red}{\mathbb{P}(X \geq k)} \color{black}\leq \frac{\color{blue}{\mathbb{E}(X)}}{\color{green}{k}}$$ </p>
-<h2>How you might arrive at the weak law of large numbers</h2>
-<p>Consider the following two scenarios: </p>
-<p><strong>Scenario 1</strong>: You toss a coin and record the outcome. <br>
-<strong>Scenario 2</strong>: You toss a coin 100 times and record the <strong>average</strong> of the outcomes. </p>
-<p>Suppose now you repeat the above scenarios multiple times. <em>In which one of the two scenarios do you expect the outcome to have more variance across the different repetitions?</em></p>
-<p>You likely answered <strong>Scenario 1</strong>. This is intuitive and also correct although it's not immediately obvious why.<br />
-Let's formalize this intuition. Let $X_1$, $X_2$, ..., $X_n$ be independent and identically distributed random variables.  </p>
-<p><strong>Scenario 1</strong>: Record the outcome of $X_1$.  <br>
-<strong>Scenario 2</strong>: Record the average $\bar X := \frac{1}{n} \sum_{i=1}^{n} X_i$.</p>
+<h1 id="intuition-behind-some-probability-concepts">Intuition behind
+some probability concepts</h1>
+<p>These are some intuitions that I have either read or developed over
+the years. Most of them are accessible after an introductory course in
+probability.</p>
+<h2 id="markovs-inequality">Markov’s inequality</h2>
+<p>I did not come up with this intuition myself, I picked it up from
+Prof. Kapralov’s lectures on algorithms. Although it’s so fundamental
+that it’s likely to be found in other places.</p>
+<p>Suppose we have a population in which <em>the average salary</em> is
+6000$. We want to know the maximal proportion of the population can earn
+at least 8000$. Let’s start simple.</p>
+<p>Can everyone earn at least 8000$? No, because the average would be
+<em>higher</em> than 6000$.</p>
+<p>Can half the population earn at least 8000$? Yes, if half the
+population earns 8000$ and the other half earns 4000$, the average would
+be 6000$.</p>
+<p>So we know the answer lies between 50% and 100%.</p>
+<p>Now, let’s consider 75%. If 75% of the population earns 8000$, and
+the rest earns 0$. The average would be 6000$.</p>
+<p>Can we do better? No, because if we increase the proportion of people
+earning 8000$, the average would increase, as we are already giving the
+least amount possible to the rest of the population.</p>
+<p>What’s so special about 75%? It’s the ratio : 6000/8000 = average /
+k. Where k is the amount that we are interested in. So we established
+that: <span class="math display">\[ \color{red}{\text{proportion earning
+at least 8000\$}} \color{black}\leq \frac{\color{blue}{\text{average
+salary}}}{\color{green}{8000\$}}\]</span></p>
+<p>Now, if we think of the salaries as a non-negative random variable
+<span class="math inline">\(X\)</span>, of the average salary as <span
+class="math inline">\(\mathbb{E}(X)\)</span>, and the amount we are
+interested in as <span class="math inline">\(k\)</span>, we get the
+Markov inequality: <!-- color corresponding quantites above --></p>
+<p><span class="math display">\[ \color{red}{\mathbb{P}(X \geq k)}
+\color{black}\leq
+\frac{\color{blue}{\mathbb{E}(X)}}{\color{green}{k}}\]</span></p>
+<h2 id="how-you-might-arrive-at-the-weak-law-of-large-numbers">How you
+might arrive at the weak law of large numbers</h2>
+<p>Consider the following two scenarios:</p>
+<p><strong>Scenario 1</strong>: You toss a coin and record the outcome.
+<br> <strong>Scenario 2</strong>: You toss a coin 100 times and record
+the <strong>average</strong> of the outcomes.</p>
+<p>Suppose now you repeat the above scenarios multiple times. <em>In
+which one of the two scenarios do you expect the outcome to have more
+variance across the different repetitions?</em></p>
+<p>You likely answered <strong>Scenario 1</strong>. This is intuitive
+and also correct although it’s not immediately obvious why.<br />
+Let’s formalize this intuition. Let <span
+class="math inline">\(X_1\)</span>, <span
+class="math inline">\(X_2\)</span>, …, <span
+class="math inline">\(X_n\)</span> be independent and identically
+distributed random variables.</p>
+<p><strong>Scenario 1</strong>: Record the outcome of <span
+class="math inline">\(X_1\)</span>. <br> <strong>Scenario 2</strong>:
+Record the average <span class="math inline">\(\bar X := \frac{1}{n}
+\sum_{i=1}^{n} X_i\)</span>.</p>
 <p>We have that :<br />
-$$\operatorname{var}(\bar X) = \frac{1}{n} \operatorname{var}(X_1)$$</p>
-<p>This not only confirms our intuition that variance(Scenario 2) &lt; variance(Scenario 1)  but also quantifies the rate of decay as a function of the number of repetitions $n$.</p>
-<p><br>
-Now, we know that as $n$ increases, the variance of the mean decreases. One natural question to ask is: <em>What does the mean converge to ?</em><br />
-One way to get an idea of the answer is to look at the definition of the variance of the mean:</p>
-<p>$$\operatorname{var}(\bar X) = \mathbb{E} \left[ \Bigg| \bar X - \mathbb{E}(X_1) \Bigg|^2 \right]$$</p>
-<p>We can (handwavingly) see that as $n$ increases, the variance will converge to $0$ and so $\bar X = \frac{1}{n} \sum_{i=1}^{n} X_i$ will get closer to $\mathbb{E}(X_1)$.  </p>
-<p>To answer the question more rigorously, we can use Chebyshev's inequality, which says that for any random variable $Y$ with finite variance, we have :<br />
-$$\mathbb{P} \Bigg( \Bigg| Y - \mathbb{E}(Y) \Bigg| &gt; \epsilon \Bigg) \leq \frac{\operatorname{var}(Y)}{\epsilon^2}$$</p>
-<p>Let's apply it with $Y= \bar X$ :<br />
-$$\mathbb{P}\left( \Bigg|\bar X - \mathbb{E}(X_1)\Bigg| &gt; \epsilon \right) \leq \frac{\operatorname{var}(\bar X)}{\epsilon^2} = \frac{\operatorname{var}(X_1)}{n \epsilon^2} \to 0$$ as $n \to \infty$, for any $\epsilon &gt; 0$.  </p>
-<p>This result is known as the weak law of large numbers. The empirical average converges in probability to the expected value. This justifies why we think of the expected value as the "true" average of the random variable.</p>
-<p><strong>Why should you care ?</strong> 
-The above result is really intuitive. After all we just showed that the <em>empirical</em> average converges to the <em>theoretical</em> average. What does that mean in practice ? 
-One application of this fact, is boosting <em>estimators</em>. Suppose we want to approximate an unknown quantity $\theta$. Let's also suppose that we have constructed an unbiased estimator $X$ with a large variance. Unbiased meaning that $\mathbb{E}(X) = \theta$. </p>
-<p>Our above result tells us that by average multiple independent copies of $X$, we get can estimator $\bar X = \frac{1}{n} \sum_{i=1}^{n} X_i$ with the same accuracy (still unbiased) but with a smaller variance. </p>
-<h2>The difference between different types of convergence</h2>
-<h3>Convergence in distribution vs Convergence in probability</h3>
-<p>Let's first start with definitions of the two types of convergence:</p>
+<span class="math display">\[\operatorname{var}(\bar X) = \frac{1}{n}
+\operatorname{var}(X_1)\]</span></p>
+<p>This not only confirms our intuition that variance(Scenario 2) &lt;
+variance(Scenario 1) but also quantifies the rate of decay as a function
+of the number of repetitions <span class="math inline">\(n\)</span>.</p>
+<p><br> Now, we know that as <span class="math inline">\(n\)</span>
+increases, the variance of the mean decreases. One natural question to
+ask is: <em>What does the mean converge to ?</em><br />
+One way to get an idea of the answer is to look at the definition of the
+variance of the mean:</p>
+<p><span class="math display">\[\operatorname{var}(\bar X) = \mathbb{E}
+\left[ \Bigg| \bar X - \mathbb{E}(X_1) \Bigg|^2 \right]\]</span></p>
+<p>We can (handwavingly) see that as <span
+class="math inline">\(n\)</span> increases, the variance will converge
+to <span class="math inline">\(0\)</span> and so <span
+class="math inline">\(\bar X = \frac{1}{n} \sum_{i=1}^{n} X_i\)</span>
+will get closer to <span
+class="math inline">\(\mathbb{E}(X_1)\)</span>.</p>
+<p>To answer the question more rigorously, we can use Chebyshev’s
+inequality, which says that for any random variable <span
+class="math inline">\(Y\)</span> with finite variance, we have :<br />
+<span class="math display">\[\mathbb{P} \Bigg( \Bigg| Y - \mathbb{E}(Y)
+\Bigg| &gt; \epsilon \Bigg) \leq
+\frac{\operatorname{var}(Y)}{\epsilon^2}\]</span></p>
+<p>Let’s apply it with <span class="math inline">\(Y= \bar X\)</span>
+:<br />
+<span class="math display">\[\mathbb{P}\left( \Bigg|\bar X -
+\mathbb{E}(X_1)\Bigg| &gt; \epsilon \right) \leq
+\frac{\operatorname{var}(\bar X)}{\epsilon^2} =
+\frac{\operatorname{var}(X_1)}{n \epsilon^2} \to 0\]</span> as <span
+class="math inline">\(n \to \infty\)</span>, for any <span
+class="math inline">\(\epsilon &gt; 0\)</span>.</p>
+<p>This result is known as the weak law of large numbers. The empirical
+average converges in probability to the expected value. This justifies
+why we think of the expected value as the “true” average of the random
+variable.</p>
+<p><strong>Why should you care ?</strong> The above result is really
+intuitive. After all we just showed that the <em>empirical</em> average
+converges to the <em>theoretical</em> average. What does that mean in
+practice ? One application of this fact, is boosting
+<em>estimators</em>. Suppose we want to approximate an unknown quantity
+<span class="math inline">\(\theta\)</span>. Let’s also suppose that we
+have constructed an unbiased estimator <span
+class="math inline">\(X\)</span> with a large variance. Unbiased meaning
+that <span class="math inline">\(\mathbb{E}(X) = \theta\)</span>.</p>
+<p>Our above result tells us that by average multiple independent copies
+of <span class="math inline">\(X\)</span>, we get can estimator <span
+class="math inline">\(\bar X = \frac{1}{n} \sum_{i=1}^{n} X_i\)</span>
+with the same accuracy (still unbiased) but with a smaller variance.</p>
+<h2 id="the-difference-between-different-types-of-convergence">The
+difference between different types of convergence</h2>
+<h3
+id="convergence-in-distribution-vs-convergence-in-probability">Convergence
+in distribution vs Convergence in probability</h3>
+<p>Let’s first start with definitions of the two types of
+convergence:</p>
 <ul>
-<li><strong>Convergence in distribution</strong>: A sequence of random variables $X_n$ converges in distribution to a random variable $X$ if 
-$$\mathbb{P}(X_n \leq t) \to \mathbb{P}(X \leq t)$$ for all $t$ at which $X$ is continuous.</li>
-<li><strong>Convergence in probability</strong>: A sequence of random variables $X_n$ converges in probability to a random variable $X$ if : 
-$$\forall \epsilon &gt; 0 \quad \mathbb{P}(|X_n - X| &gt; \epsilon) \to 0 \text{ as } n \to \infty$$.</li>
+<li><strong>Convergence in distribution</strong>: A sequence of random
+variables <span class="math inline">\(X_n\)</span> converges in
+distribution to a random variable <span class="math inline">\(X\)</span>
+if <span class="math display">\[\mathbb{P}(X_n \leq t) \to \mathbb{P}(X
+\leq t)\]</span> for all <span class="math inline">\(t\)</span> at which
+<span class="math inline">\(X\)</span> is continuous.</li>
+<li><strong>Convergence in probability</strong>: A sequence of random
+variables <span class="math inline">\(X_n\)</span> converges in
+probability to a random variable <span class="math inline">\(X\)</span>
+if : <span class="math display">\[\forall \epsilon &gt; 0 \quad
+\mathbb{P}(|X_n - X| &gt; \epsilon) \to 0 \text{ as } n \to
+\infty\]</span>.</li>
 </ul>
-<p>You probably saw in your probability course that convergence in probability implies convergence in distribution.
-What's interesting in the other way. Does convergence in distribution imply convergence in probability ?</p>
-<p>This question is in reality a pretext to go back to the basics of what's a random variable and how it relates to it's distribution. </p>
-<p>For that, let's consider these two simple examples, suppose our set of outcomes is $\Omega = \lbrace 0,1\rbrace$ (ie a coin flip) and let $P(\lbrace 0\rbrace) = 0.5$ and $P(\lbrace 1\rbrace) = 0.5$. </p>
-<p>A random variable here would be a function<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup> from $\Omega$ to $\mathbb{R}$. Let's consider the following two examples: </p>
+<p>You probably saw in your probability course that convergence in
+probability implies convergence in distribution. What’s interesting in
+the other way. Does convergence in distribution imply convergence in
+probability ?</p>
+<p>This question is in reality a pretext to go back to the basics of
+what’s a random variable and how it relates to it’s distribution.</p>
+<p>For that, let’s consider these two simple examples, suppose our set
+of outcomes is <span class="math inline">\(\Omega = \lbrace
+0,1\rbrace\)</span> (ie a coin flip) and let <span
+class="math inline">\(P(\lbrace 0\rbrace) = 0.5\)</span> and <span
+class="math inline">\(P(\lbrace 1\rbrace) = 0.5\)</span>.</p>
+<p>A random variable here would be a function<a href="#fn1"
+class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>
+from <span class="math inline">\(\Omega\)</span> to <span
+class="math inline">\(\mathbb{R}\)</span>. Let’s consider the following
+two examples:</p>
 <ul>
-<li>
-<p><strong>Example 1</strong>: Let $X$ and $Y$ such that $X(0) = 0$ and $X(1) = 1$ and $Y(0) = 0$ and $Y(1) = 1$.
-These two random variables are equal, so they have the same distribution.
-<center><img src="../assets/prob-intuition/cdf.svg" alt="alt text" style="width: 60%;"></center></p>
-</li>
-<li>
-<p><strong>Example 2</strong>: Let $X$ and $Y$ such that $X(0) = 0$ and $X(1) = 1$ and $Y(0) = 1$ and $Y(1) = 0$.
-In this case, $Y=1-X$. However, they have the same distribution (and thus the same CDF, the one above). </p>
-</li>
+<li><strong>Example 1</strong>: Let <span
+class="math inline">\(X\)</span> and <span
+class="math inline">\(Y\)</span> such that <span
+class="math inline">\(X(0) = 0\)</span> and <span
+class="math inline">\(X(1) = 1\)</span> and <span
+class="math inline">\(Y(0) = 0\)</span> and <span
+class="math inline">\(Y(1) = 1\)</span>. These two random variables are
+equal, so they have the same distribution.
+<center>
+<img src="../assets/prob-intuition/cdf.svg" alt="alt text" style="width: 60%;">
+</center></li>
+<li><strong>Example 2</strong>: Let <span
+class="math inline">\(X\)</span> and <span
+class="math inline">\(Y\)</span> such that <span
+class="math inline">\(X(0) = 0\)</span> and <span
+class="math inline">\(X(1) = 1\)</span> and <span
+class="math inline">\(Y(0) = 1\)</span> and <span
+class="math inline">\(Y(1) = 0\)</span>. In this case, <span
+class="math inline">\(Y=1-X\)</span>. However, they have the same
+distribution (and thus the same CDF, the one above).</li>
 </ul>
-<p>In both, situations, the two random variables have the same distribution which is bernoulli(0.5). However, in the second example, the two random variables are not equal. This tells us that when we know the distribtuion of a random variable, we actually don't know much about the random variable itself. </p>
-<p>Now if we look at the definition of convergence in distribution, it's clearly a statement only about the distribution of the random variables. However, convergence in probability is a statement that is much more about the random variables themselves. In fact, it's about the distance $|X_n - X|$. </p>
-<p>Moreover, the random variales of the second example, $X$ that follows a bernoulli(0.5) distribution and $Y = 1-X$ which also follows a bernoulli(0.5) distribution, are a counter-example to the question we asked. 
-If we set $\hat X_n = X$ and $\hat X = Y$, then we have that $\hat X_n$ converges in distribution to $\bar X$, in fact they have the same distribtuion (bernoulli(0.5)). But $|\hat X_n - \hat X| = 1$ for all $n$ so there is no convergence in probability. </p>
-<div class="footnote">
+<p>In both, situations, the two random variables have the same
+distribution which is bernoulli(0.5). However, in the second example,
+the two random variables are not equal. This tells us that when we know
+the distribtuion of a random variable, we actually don’t know much about
+the random variable itself.</p>
+<p>Now if we look at the definition of convergence in distribution, it’s
+clearly a statement only about the distribution of the random variables.
+However, convergence in probability is a statement that is much more
+about the random variables themselves. In fact, it’s about the distance
+<span class="math inline">\(|X_n - X|\)</span>.</p>
+<p>Moreover, the random variales of the second example, <span
+class="math inline">\(X\)</span> that follows a bernoulli(0.5)
+distribution and <span class="math inline">\(Y = 1-X\)</span> which also
+follows a bernoulli(0.5) distribution, are a counter-example to the
+question we asked. If we set <span class="math inline">\(\hat X_n =
+X\)</span> and <span class="math inline">\(\hat X = Y\)</span>, then we
+have that <span class="math inline">\(\hat X_n\)</span> converges in
+distribution to <span class="math inline">\(\bar X\)</span>, in fact
+they have the same distribtuion (bernoulli(0.5)). But <span
+class="math inline">\(|\hat X_n - \hat X| = 1\)</span> for all <span
+class="math inline">\(n\)</span> so there is no convergence in
+probability.</p>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn:1">
-<p>A function <em>measurable</em> with respect to a sigma-field of $\Omega$, but that's not the point here.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
+<li id="fn1"><p>A function <em>measurable</em> with respect to a
+sigma-field of <span class="math inline">\(\Omega\)</span>, but that’s
+not the point here.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
 </ol>
-</div>
+</section>
 </body>
 </html>

@@ -1,140 +1,278 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-    <meta charset="utf-8">
-    <title>Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="pygments.css">
-    <script type="text/javascript" async>
-      MathJax = {
-        tex: {
-          inlineMath: [['$', '$']],  /* Support for inline LaTeX */
-          displayMath: [['$$', '$$']]  /* Support for block LaTeX */
-        },
-        options: {
-          renderActions: {
-            addMenu: [0]  /* Disable MathJax menu */
-          }
-        }
-      };
-    </script>
-    <script type="text/javascript" async
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-    </script>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>conv1d-cuda</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
 </head>
 <body>
-<p><link rel="icon" href="favicon.png" type="image/png"></p>
-<h1>Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU</h1>
-<p>I have been learning CUDA for the past few months. Recently, I came across LeetGPU, a platform with many CUDA challenges. I spent a few weeks thinking about how to optimize a 1D convolution kernel. After a few weeks of experimenting, debugging, and tuning, I managed to reach the top of the leaderboard on the NVIDIA T4 GPU. </p>
-<p><center><figure>
-<img src="../assets/conv1d-cuda/leaderboard.png" alt="LeetGPU Leaderboard" style="width: 50%; max-width: 500;"> 
-</figure></center>
-In this post, I’ll walk you through how I approached optimizing the 1D convolution kernel, from the initial naive version to the final implementation. I’ll also cover some of the key CUDA concepts and performance tricks that helped along the way.</p>
-<h2>Defining the Problem</h2>
-<p>The task is to compute the convolution of a 1D $\text{input}$ array with a $\text{mask}$ defined as follows:</p>
-<p>$$
-\text{output}[i] = \sum_{j=0}^{\text{mask_size}-1} \text{input}[i+j] \cdot \text{mask}[j]      <br />
-$$</p>
-<p>where $i$ ranges from $0$ to  $\text{input_size} - \text{mask_size}$. </p>
-<p>We will try to optimize the kernel for convolution as much as possible on <strong>NVIDIA T4</strong> and benchmarking on a test case with $\text{input_size} = 1000000$ and $\text{mask_size} = 2047$. </p>
-<h2>I. The Naive Approach</h2>
-<p>The naive approach is to assign each thread to one output element and compute the convolution directly. This results in a kernel that looks like this:</p>
-<div class="codehilite"><pre><span></span><code><span class="w">    </span><span class="c1">// input, mask, and output are stored in global memory </span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">output_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input_size</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">mask_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">idx</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">output_size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">float</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
-<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">mask_size</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">input</span><span class="p">[</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mask</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="n">output</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">;</span>
-<span class="w">    </span><span class="p">}</span>
-</code></pre></div>
-
-<p>I did a hyperparameter search for the best <code>THREADS_PER_BLOCK</code> value, the block size and found that $512$ threads per block is the best. The results are as follows: </p>
-<div class="codehilite"><pre><span></span><code><span class="nv">THREADS_PER_BLOCK</span><span class="o">=</span><span class="m">512</span>
-naive<span class="w"> </span>:<span class="w"> </span><span class="m">4</span>.57051<span class="w"> </span>ms,<span class="w"> </span><span class="m">0</span>.895742<span class="w"> </span>GFLOPS
-</code></pre></div>
-
-<p>This kernel does a lot of global memory accesses, which are relatively slow. We can already spot a few inefficiencies:
-1. <code>mask</code> reads are not coalesced.
-2. <code>input</code> reads are coalesced, but redundant. The same goes for <code>mask</code>.</p>
-<p>So we will try next to optimize the memory accesses. But first, let's see another way to arrive at the same conclusion.</p>
-<h3>Arithmetic Intensity</h3>
-<p>The NVIDIA T4 GPU has a peak performance of $8.1408\ \text{TFLOPs/s}$ (FP32) and a memory bandwidth of $320.06\ \text{GB/s}$. This means that for each byte read from memory, the hardware can ideally perform<br />
-$$
-\frac{8.1408 \times 10^{12}}{320.06 \times 10^9} = 25.44\ \text{FLOPs}.
-$$</p>
-<p>Next, let’s look at how many FLOPs our naive kernel does per byte read—this is called the <strong>arithmetic intensity</strong> (AI).</p>
-<p>Our kernel reads $2 \cdot \text{mask_size}$ floats per output element (one for <code>input</code>, one for <code>mask</code>), so a total of $8 \cdot \text{mask_size}$ bytes. It performs $2 \cdot \text{mask_size}$ FLOPs (one multiply and one add per input-mask pair). So the arithmetic intensity is:</p>
-<p>$$
-\text{AI} = \frac{2 \cdot \text{mask_size}}{8 \cdot \text{mask_size}} = \frac{1}{4}.
-$$</p>
-<p>This means the kernel does only $0.25\ \text{FLOPs}$ per byte read—far below the hardware limit of $25.44$. In other words, performance is limited by memory throughput, not    computation. This is a <strong>memory-bound</strong> kernel. To improve performence, we need to increase the arithmetic intensity by reducing memory accesses or increasing computation per access. </p>
-<h2>II. Using shared and constant Memory</h2>
-<p>To optimize memory accesses, we will use two techniques: </p>
-<p><strong>1. Constant memory</strong>  The $\text{mask}$ array is small and constant throught the kernel execution. We can store it in <strong>constant memory</strong>, which is cached in a read-only cache. To use constant memory, we just need to declare mask as follows: </p>
-<div class="codehilite"><pre><span></span><code><span class="n">__constant__</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">cmem_mask</span><span class="p">[</span><span class="n">MASK_SIZE</span><span class="p">];</span>
-</code></pre></div>
-
-<p>and copy the date to it from <code>mask</code> using </p>
-<div class="codehilite"><pre><span></span><code><span class="n">cudaMemcpyToSymbol</span><span class="p">(</span><span class="n">cmem_mask</span><span class="p">,</span><span class="w"> </span><span class="n">mask_data</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mask_size</span><span class="p">);</span>
-</code></pre></div>
-
-<p><strong>2. Shared memory</strong>  Shared memory is shared among all threads in a block. It is on-chip memory and is much faster than global memory (faster than L1 cache with proper access). We will use it to cache the needed input data and then have fast reads during the convolution computation. All threads in a block will collaborate and load the needed data from input into shared memory, in a <strong>coalesced manner</strong>. Altought a block is responsible for <code>THREADS_PER_BLOCK</code> output elements, it needs <code>THREADS_PER_BLOCK + mask_size - 1</code> input elements to compute them. See figure below for a visual representation of this :</p>
-<figure style="text-align: center;">
-  <img src="../assets/conv1d-cuda/smem_diagram.png" 
-       alt="Shared Memory Diagram" 
-       style="width: 80%; max-width: 500px;">
-  <figcaption>A block responsible for region output[i:j] it needs to access input[i:j+mask_size]</figcaption>
+<p><span style="position: absolute; left:3%; top: 10%;"><a
+href="homepage.html">Home</a></p>
+<p><link rel="icon" type="image/x-icon" href="../assets/conv1d-cuda/favicon.ico"></p>
+<h1 id="fast-1d-convolution-in-cuda-achieving-1-on-leetgpu">Fast 1D
+Convolution in CUDA: Achieving #1 on LeetGPU</h1>
+I have been learning CUDA for the past few months. Recently, I came
+across LeetGPU, a platform with many CUDA challenges. I spent a few
+weeks thinking about how to optimize a 1D convolution kernel. After a
+few weeks of experimenting, debugging, and tuning, I managed to reach
+the top of the leaderboard on the NVIDIA T4 GPU.
+<center>
+<figure>
+<img src="../assets/conv1d-cuda/leaderboard.png" alt="LeetGPU Leaderboard" style="width: 50%; max-width: 500;">
 </figure>
-
-<p><strong>Can we fit that many data in shared memory?</strong> Yes ! Each SM has 64Kb of shared memory, that's 16K floats. And each SM can launch 1024 threads at a time. If we choose a block size of 1024, we will need to store <code>1024 + 2047 - 1 = 3070</code>. So we can store more than 4 times that in shared memory. Meaning we can also do block sizes of 512, 256.</p>
-<p>The interesting parts of the code become as follows: </p>
-<div class="codehilite"><pre><span></span><code><span class="w"> </span><span class="c1">// idx of the first output element that the block is responsible for</span>
-<span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">block_start</span><span class="w"> </span><span class="o">=</span><span class="w">  </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-<span class="c1">// idx of the output element that this thread is responsible for</span>
-<span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">tid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">block_start</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-
-<span class="k">extern</span><span class="w"> </span><span class="n">__shared__</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">smem_input</span><span class="p">[];</span><span class="w"> </span><span class="c1">// shared memory </span>
-
-<span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">smem_len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kernel_size</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">// block region + halo region</span>
-
-<span class="c1">// all threads collaborate to load data from gmem to smem </span>
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">smem_len</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">global_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">block_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">global_idx</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">input_size</span><span class="p">)</span><span class="w"> </span>
-<span class="w">        </span><span class="n">smem_input</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">[</span><span class="n">global_idx</span><span class="p">];</span>
-<span class="p">}</span>
-
-<span class="c1">// wait for all threads to finish the transfer</span>
-<span class="n">__syncthreads</span><span class="p">();</span><span class="w"> </span>
-
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tid</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">input_size</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">kernel_size</span><span class="p">)</span>
-<span class="w">    </span><span class="k">return</span><span class="p">;</span><span class="w"> </span>
-
-<span class="c1">// compute the convolution</span>
-<span class="kt">float</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-<span class="k">for</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">kernel_size</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">){</span>
-<span class="w">    </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">smem_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cmem_kernel</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><span class="w"> </span>
-<span class="p">}</span>
-<span class="c1">// save the result to global memory</span>
-<span class="n">output</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-</code></pre></div>
-
-<p>Note that in the transfer from gmem to smem, we are using a <strong>coalesced access pattern</strong> : consecutive threads in a warp, read consecutive elements from global memory. </p>
-<p>The best block size is still 512, and the runtime is now :  </p>
-<div class="codehilite"><pre><span></span><code><span class="n">naive</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">4.60465</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.889101</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">smem</span><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="mf">4.67256</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.876179</span><span class="w"> </span><span class="n">GFLOPS</span>
-</code></pre></div>
-
-<p>This is disappointing. The shared memory kernel is slightly slower than the naive one. To understand why, we need to profile both our kernels with <code>ncu</code> : </p>
-<div class="codehilite"><pre><span></span><code>ncu<span class="w"> </span>--set<span class="w"> </span>full<span class="w"> </span>./benchmark<span class="w"> </span>naive
-ncu<span class="w"> </span>--set<span class="w"> </span>full<span class="w"> </span>./benchmark<span class="w"> </span>smem
-</code></pre></div>
-
-<p>This shows us a lot of information, let's scroll down to the memory section and look at the L1 and L2 hit rates</p>
+</center>
+<p>In this post, I’ll walk you through how I approached optimizing the
+1D convolution kernel, from the initial naive version to the final
+implementation. I’ll also cover some of the key CUDA concepts and
+performance tricks that helped along the way. You can find the code on
+my
+<a href="https://github.com/youssef62/conv1d-cuda" style="text-decoration: none;">
+<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="20" style="vertical-align: middle; margin-right: 4px;">
+GitHub </a>.</p>
+<h2 id="defining-the-problem">Defining the Problem</h2>
+<p>The task is to compute the convolution of a 1D <span
+class="math inline">\(\text{input}\)</span> array with a <span
+class="math inline">\(\text{mask}\)</span> defined as follows:</p>
+<p><span class="math display">\[
+\text{output}[i] = \sum_{j=0}^{\text{mask\_size}-1} \text{input}[i+j]
+\cdot \text{mask}[j]        
+\]</span></p>
+<p>where <span class="math inline">\(i\)</span> ranges from <span
+class="math inline">\(0\)</span> to <span
+class="math inline">\(\text{input\_size} -
+\text{mask\_size}\)</span>.</p>
+<p>We will try to optimize the kernel for convolution as much as
+possible on <strong>NVIDIA T4</strong> and benchmarking on a test case
+with <span class="math inline">\(\text{input\_size} = 1000000\)</span>
+and <span class="math inline">\(\text{mask\_size} = 2047\)</span>.</p>
+<h2 id="i.-the-naive-approach">I. The Naive Approach</h2>
+<p>The naive approach is to assign each thread to one output element and
+compute the convolution directly. This results in a kernel that looks
+like this:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// input, mask, and output are stored in global memory </span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> idx <span class="op">=</span> blockIdx<span class="op">.</span>x <span class="op">*</span> blockDim<span class="op">.</span>x <span class="op">+</span> threadIdx<span class="op">.</span>x<span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> output_size <span class="op">=</span> input_size <span class="op">-</span> mask_size <span class="op">+</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>idx <span class="op">&lt;</span> output_size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">float</span> sum <span class="op">=</span> <span class="fl">0.0</span><span class="bu">f</span><span class="op">;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> j <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> j <span class="op">&lt;</span> mask_size<span class="op">;</span> <span class="op">++</span>j<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            sum <span class="op">+=</span> input<span class="op">[</span>idx <span class="op">+</span> j<span class="op">]</span> <span class="op">*</span> mask<span class="op">[</span>j<span class="op">];</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        output<span class="op">[</span>idx<span class="op">]</span> <span class="op">=</span> sum<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div>
+<p>I did a hyperparameter search for the best
+<code>THREADS_PER_BLOCK</code> value, the block size and found that
+<span class="math inline">\(512\)</span> threads per block is the best.
+The results are as follows:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">THREADS_PER_BLOCK</span><span class="op">=</span>512</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">naive</span> : 4.57051 ms, 0.895742 GFLOPS</span></code></pre></div>
+<p>This kernel does a lot of global memory accesses, which are
+relatively slow. We can already spot a few inefficiencies: 1.
+<code>mask</code> reads are not coalesced. 2. <code>input</code> reads
+are coalesced, but redundant. The same goes for <code>mask</code>.</p>
+<p>So we will try next to optimize the memory accesses. But first, let’s
+see another way to arrive at the same conclusion.</p>
+<h3 id="arithmetic-intensity">Arithmetic Intensity</h3>
+<p>The NVIDIA T4 GPU has a peak performance of <span
+class="math inline">\(8.1408\ \text{TFLOPs/s}\)</span> (FP32) and a
+memory bandwidth of <span class="math inline">\(320.06\
+\text{GB/s}\)</span>. This means that for each byte read from memory,
+the hardware can ideally perform<br />
+<span class="math display">\[
+\frac{8.1408 \times 10^{12}}{320.06 \times 10^9} = 25.44\ \text{FLOPs}.
+\]</span></p>
+<p>Next, let’s look at how many FLOPs our naive kernel does per byte
+read—this is called the <strong>arithmetic intensity</strong> (AI).</p>
+<p>Our kernel reads <span class="math inline">\(2 \cdot
+\text{mask\_size}\)</span> floats per output element (one for
+<code>input</code>, one for <code>mask</code>), so a total of <span
+class="math inline">\(8 \cdot \text{mask\_size}\)</span> bytes. It
+performs <span class="math inline">\(2 \cdot \text{mask\_size}\)</span>
+FLOPs (one multiply and one add per input-mask pair). So the arithmetic
+intensity is:</p>
+<p><span class="math display">\[
+\text{AI} = \frac{2 \cdot \text{mask\_size}}{8 \cdot \text{mask\_size}}
+= \frac{1}{4}.
+\]</span></p>
+<p>This means the kernel does only <span class="math inline">\(0.25\
+\text{FLOPs}\)</span> per byte read—far below the hardware limit of
+<span class="math inline">\(25.44\)</span>. In other words, performance
+is limited by memory throughput, not computation. This is a
+<strong>memory-bound</strong> kernel. To improve performence, we need to
+increase the arithmetic intensity by reducing memory accesses or
+increasing computation per access.</p>
+<h2 id="ii.-using-shared-and-constant-memory">II. Using shared and
+constant Memory</h2>
+<p>To optimize memory accesses, we will use two techniques:</p>
+<p><strong>1. Constant memory</strong> The <span
+class="math inline">\(\text{mask}\)</span> array is small and constant
+throught the kernel execution. We can store it in <strong>constant
+memory</strong>, which is cached in a read-only cache. To use constant
+memory, we just need to declare mask as follows:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>__constant__ <span class="dt">float</span> cmem_mask<span class="op">[</span>MASK_SIZE<span class="op">];</span></span></code></pre></div>
+<p>and copy the date to it from <code>mask</code> using</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>cudaMemcpyToSymbol<span class="op">(</span>cmem_mask<span class="op">,</span> mask_data<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span><span class="dt">float</span><span class="op">)</span> <span class="op">*</span> mask_size<span class="op">);</span></span></code></pre></div>
+<p><strong>2. Shared memory</strong> Shared memory is shared among all
+threads in a block. It is on-chip memory and is much faster than global
+memory (faster than L1 cache with proper access). We will use it to
+cache the needed input data and then have fast reads during the
+convolution computation. All threads in a block will collaborate and
+load the needed data from input into shared memory, in a
+<strong>coalesced manner</strong>. Altought a block is responsible for
+<code>THREADS_PER_BLOCK</code> output elements, it needs
+<code>THREADS_PER_BLOCK + mask_size - 1</code> input elements to compute
+them. See figure below for a visual representation of this :</p>
+<figure style="text-align: center;">
+<img src="../assets/conv1d-cuda/smem_diagram.png" 
+       alt="Shared Memory Diagram" 
+       style="width: 80%; max-width: 700px;">
+<figcaption>
+A block responsible for region output[i:j] it needs to access
+input[i:j+mask_size]
+</figcaption>
+</figure>
+<p><strong>Can we fit that many data in shared memory?</strong> Yes !
+Each SM has 64Kb of shared memory, that’s 16K floats. And each SM can
+launch 1024 threads at a time. If we choose a block size of 1024, we
+will need to store <code>1024 + 2047 - 1 = 3070</code>. So we can store
+more than 4 times that in shared memory. Meaning we can also do block
+sizes of 512, 256.</p>
+<p>The interesting parts of the code become as follows:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a> <span class="co">// idx of the first output element that the block is responsible for</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> block_start <span class="op">=</span>  blockDim<span class="op">.</span>x <span class="op">*</span> blockIdx<span class="op">.</span>x <span class="op">;</span> </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// idx of the output element that this thread is responsible for</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> tid <span class="op">=</span> threadIdx<span class="op">.</span>x <span class="op">+</span> block_start <span class="op">;</span> </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">extern</span> __shared__ <span class="dt">float</span> smem_input<span class="op">[];</span> <span class="co">// shared memory </span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> smem_len <span class="op">=</span> blockDim<span class="op">.</span>x <span class="op">+</span> kernel_size <span class="op">-</span> <span class="dv">1</span><span class="op">;</span> <span class="co">// block region + halo region</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">// all threads collaborate to load data from gmem to smem </span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">size_t</span> i <span class="op">=</span> threadIdx<span class="op">.</span>x<span class="op">;</span> i <span class="op">&lt;</span> smem_len <span class="op">;</span> i <span class="op">+=</span> blockDim<span class="op">.</span>x<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">size_t</span> global_idx <span class="op">=</span> block_start <span class="op">+</span> i<span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>global_idx <span class="op">&lt;</span> input_size<span class="op">)</span> </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        smem_input<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> input<span class="op">[</span>global_idx<span class="op">];</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">// wait for all threads to finish the transfer</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>__syncthreads<span class="op">();</span> </span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>tid <span class="op">&gt;</span> input_size <span class="op">-</span> kernel_size<span class="op">)</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span> </span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co">// compute the convolution</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> sum <span class="op">=</span> <span class="dv">0</span> <span class="op">;</span> </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span><span class="op">(</span><span class="dt">size_t</span> i <span class="op">=</span> <span class="dv">0</span> <span class="op">;</span> i <span class="op">&lt;</span> kernel_size <span class="op">;</span> i<span class="op">++){</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">+=</span> smem_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">+</span>i<span class="op">]</span> <span class="op">*</span> cmem_kernel<span class="op">[</span>i<span class="op">];</span> </span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">// save the result to global memory</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>output<span class="op">[</span>tid<span class="op">]</span> <span class="op">=</span> sum <span class="op">;</span> </span></code></pre></div>
+<p>Note that in the transfer from gmem to smem, we are using a
+<strong>coalesced access pattern</strong> : consecutive threads in a
+warp, read consecutive elements from global memory.</p>
+<p>The best block size is still 512, and the runtime is now :</p>
+<pre><code>naive : 4.60465 ms, 0.889101 GFLOPS
+smem  : 4.67256 ms, 0.876179 GFLOPS</code></pre>
+<p>This is disappointing. The shared memory kernel is slightly slower
+than the naive one. To understand why, we need to profile both our
+kernels with <code>ncu</code> :</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ncu</span> <span class="at">--set</span> full ./benchmark naive</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ncu</span> <span class="at">--set</span> full ./benchmark smem</span></code></pre></div>
+<p>This shows us a lot of information, let’s scroll down to the memory
+section and look at the L1 and L2 hit rates</p>
 <table>
 <thead>
 <tr>
@@ -156,8 +294,13 @@ ncu<span class="w"> </span>--set<span class="w"> </span>full<span class="w"> </s
 </tr>
 </tbody>
 </table>
-<p>We can see that the naive kernel makes a really good use the caches. As the L2 cache is 6MB it probibly fits the whole input array. The <code>mask</code> array also must reside in the L2 cache and is loaded once per SM to the L1 and then is always fetched from there. </p>
-<p>But <strong>shared memory is typically faster than L1 cache, so why is the shared memory kernel slower?</strong> Let's look at other metrics:</p>
+<p>We can see that the naive kernel makes a really good use the caches.
+As the L2 cache is 6MB it probibly fits the whole input array. The
+<code>mask</code> array also must reside in the L2 cache and is loaded
+once per SM to the L1 and then is always fetched from there.</p>
+<p>But <strong>shared memory is typically faster than L1 cache, so why
+is the shared memory kernel slower?</strong> Let’s look at other
+metrics:</p>
 <table>
 <thead>
 <tr>
@@ -184,140 +327,189 @@ ncu<span class="w"> </span>--set<span class="w"> </span>full<span class="w"> </s
 </tr>
 </tbody>
 </table>
-<p>Let's analyze and understand these numbers. <strong>Warp Cycles Per Issued Instruction</strong> tells us how many cycles it takes for a warp to issue an instruction. A higher value means the warp spends more time waiting between instructions, indicating potential inefficiencies.</p>
-<p>Both kernels spend a significant number of cycles waiting between instructions, but the shared memory (smem) kernel spends less time waiting (24.18 cycles/instruction) compared to the naive kernel (38.41 cycles/instruction) a factor of 1.59 improvement. However, the smem kernel executes significantly more instructions (355M vs 225M) a factor of 1.57 ! Which cancels out the improvement and result in similar runtimes. </p>
-<p>This is consistent with the fact that the <strong>Instructions Per Cycle</strong> (IPC) is higher for the smem kernel (1.28) than for the naive kernel (0.82), indicating that the smem kernel is utilizing the GPU more efficiently per cycle, even though it performs more work overall.</p>
-<p>Finally, for the smem solution, the profiler indicates that shared memory loads account for 40% of the kernel's waiting time between instructions. This is likely due to the presence of many <strong>bank conflicts</strong>, which can significantly increase shared memory access latency.</p>
-<p>All these hints us to what we need to do : Less shared memory reads and more computation.</p>
-<h2>III. Register Blocking</h2>
-<p>We need to do more computation per element loaded from shared memory to reduce shared memory read overhead. To achieve this, each thread will compute <strong>two output elements at once</strong>. </p>
-<p>Instead of loading entries from <code>input</code> multiple times, each thread will load the necessary values from shared memory into registers once and use them to compute two output elements. This approach will <strong>halve the number of shared memory reads</strong> and reduce bank conflicts.</p>
-<p><center><figure>
-    <img src="../assets/conv1d-cuda/reg_blocking_diagram.png" 
+<p>Let’s analyze and understand these numbers. <strong>Warp Cycles Per
+Issued Instruction</strong> tells us how many cycles it takes for a warp
+to issue an instruction. A higher value means the warp spends more time
+waiting between instructions, indicating potential inefficiencies.</p>
+<p>Both kernels spend a significant number of cycles waiting between
+instructions, but the shared memory (smem) kernel spends less time
+waiting (24.18 cycles/instruction) compared to the naive kernel (38.41
+cycles/instruction) a factor of 1.59 improvement. However, the smem
+kernel executes significantly more instructions (355M vs 225M) a factor
+of 1.57 ! Which cancels out the improvement and result in similar
+runtimes.</p>
+<p>This is consistent with the fact that the <strong>Instructions Per
+Cycle</strong> (IPC) is higher for the smem kernel (1.28) than for the
+naive kernel (0.82), indicating that the smem kernel is utilizing the
+GPU more efficiently per cycle, even though it performs more work
+overall.</p>
+<p>Finally, for the smem solution, the profiler indicates that shared
+memory loads account for 40% of the kernel’s waiting time between
+instructions. This is likely due to the presence of many <strong>bank
+conflicts</strong>, which can significantly increase shared memory
+access latency.</p>
+<p>All these hints us to what we need to do : Less shared memory reads
+and more computation.</p>
+<h2 id="iii.-register-blocking">III. Register Blocking</h2>
+<p>We need to do more computation per element loaded from shared memory
+to reduce shared memory read overhead. To achieve this, each thread will
+compute <strong>two output elements at once</strong>.</p>
+<p>Instead of loading entries from <code>input</code> multiple times,
+each thread will load the necessary values from shared memory into
+registers once and use them to compute two output elements. This
+approach will <strong>halve the number of shared memory reads</strong>
+and reduce bank conflicts.</p>
+<center>
+<figure>
+<img src="../assets/conv1d-cuda/reg_blocking_diagram.png" 
          alt="Register Blocking Diagram" 
-         style="width: 80%; max-width: 500px;">
-    <figcaption style="text-align: center;">The sliding window approach for register blocking with 2 outputs per thread. At each iteration, we reuse one input element from the registers and load a new one from smem</figcaption>
-  </figure></center></p>
-<p>To understand this better, consider how <code>mask[0]</code> contributes to the outputs:</p>
+         style="width: 80%; max-width: 700px;">
+<figcaption style="text-align: center;">
+The sliding window approach for register blocking with 2 outputs per
+thread. At each iteration, we reuse one input element from the registers
+and load a new one from smem
+</figcaption>
+</figure>
+</center>
+<p>To understand this better, consider how <code>mask[0]</code>
+contributes to the outputs:</p>
 <ul>
-<li><code>mask[0]</code> contributes to <code>output[0]</code> as <code>input[0] * mask[0]</code></li>
-<li><code>mask[0]</code> contributes to <code>output[1]</code> as <code>input[1] * mask[0]</code></li>
+<li><code>mask[0]</code> contributes to <code>output[0]</code> as
+<code>input[0] * mask[0]</code></li>
+<li><code>mask[0]</code> contributes to <code>output[1]</code> as
+<code>input[1] * mask[0]</code></li>
 </ul>
 <p>Similarly, <code>mask[1]</code> contributes:</p>
 <ul>
 <li>to <code>output[0]</code> as <code>input[1] * mask[1]</code></li>
 <li>to <code>output[1]</code> as <code>input[2] * mask[1]</code></li>
 </ul>
-<p>We observe that <code>input[1]</code> is used in computing both outputs and can be loaded once into registers. Only <code>input[2]</code> needs to be loaded additionally. </p>
-<p>We repeat this sliding window pattern for <code>mask_size</code> iterations, we effectively compute two outputs with twice fewer shared memory loads.</p>
+<p>We observe that <code>input[1]</code> is used in computing both
+outputs and can be loaded once into registers. Only
+<code>input[2]</code> needs to be loaded additionally.</p>
+<p>We repeat this sliding window pattern for <code>mask_size</code>
+iterations, we effectively compute two outputs with twice fewer shared
+memory loads.</p>
 <p>The diagram below illustrates this approach:</p>
-<p>The code for this is : </p>
-<div class="codehilite"><pre><span></span><code><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">block_output_idx_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>
-<span class="w">    </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span>
-<span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>
-<span class="w">    </span><span class="n">block_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span>
-
-<span class="c1">// GMEM to SMEM transfer happens like in previous kernel</span>
-<span class="c1">// We just need to adapt the indexing.</span>
-<span class="n">__syncthreads</span><span class="p">();</span><span class="w"> </span>
-
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">output_size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">float</span><span class="w"> </span><span class="n">reg_output</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span><span class="w"> </span><span class="c1">// output registers</span>
-<span class="kt">float</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span><span class="w"> </span><span class="c1">// input registers </span>
-
-<span class="c1">// load first two elements into input registers</span>
-<span class="n">reg_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shared_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-<span class="n">reg_input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shared_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">kernel_size</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">k_val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmem_mask</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="p">;</span>
-<span class="w">    </span><span class="n">reg_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">k_val</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// update first output register</span>
-<span class="w">    </span><span class="n">reg_output</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">k_val</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// update second output register </span>
-
-<span class="w">    </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="c1">// shift input registers to reuse next iteration</span>
-<span class="w">    </span><span class="n">reg_input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shared_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">];</span><span class="w"> </span><span class="c1">// load new element from smem </span>
-<span class="p">}</span>
-
-<span class="c1">// write output from registers to gmem</span>
-<span class="n">output</span><span class="p">[</span><span class="n">thread_output_idx_start</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reg_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">output_size</span><span class="w"> </span><span class="p">)</span>
-<span class="w">    </span><span class="n">output</span><span class="p">[</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reg_output</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span>
-</code></pre></div>
-
-<p>Now that you got the idea, let's generalize this to compute <code>OUTPUTS_PER_THREAD</code> outputs per thread. This results in the the code below : </p>
-<div class="codehilite"><pre><span></span><code><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">block_output_idx_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>
-<span class="w">    </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span>
-<span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>
-<span class="w">    </span><span class="n">block_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span>
-
-<span class="c1">// GMEM to SMEM transfer happens like in previous kernel</span>
-<span class="n">__syncthreads</span><span class="p">();</span>
-
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">output_size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">float</span><span class="w"> </span><span class="n">reg_output</span><span class="p">[</span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span><span class="w"> </span><span class="c1">// output registers </span>
-<span class="kt">float</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">];</span><span class="w"> </span><span class="c1">// input registers </span>
-
-<span class="c1">// filling input registers from smem</span>
-<span class="cp">#pragma unroll</span>
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">n</span><span class="p">)</span><span class="w"> </span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">smem_size</span><span class="w"> </span><span class="p">)</span>
-<span class="w">        </span><span class="n">reg_input</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w"> </span>
-
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">kernel_size</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">k_val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmem_kernel</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
-
-<span class="w">    </span><span class="cp">#pragma unroll </span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">n</span><span class="p">){</span>
-<span class="w">        </span><span class="n">reg_output</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">k_val</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="n">n</span><span class="p">];</span><span class="w"> </span><span class="c1">// updating output registers  </span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="cp">#pragma unroll</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="mi">-1</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">n</span><span class="p">){</span>
-<span class="w">        </span><span class="n">reg_input</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reg_input</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// shifting registers</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="n">reg_input</span><span class="p">[</span><span class="n">OUTPUTS_PER_THREAD</span><span class="mi">-1</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// load new element from smem </span>
-<span class="w">        </span><span class="n">smem_input</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">];</span><span class="w"> </span>
-<span class="p">}</span>
-
-<span class="cp">#pragma unroll</span>
-<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">OUTPUTS_PER_THREAD</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">output_size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// write output from registers to gmem </span>
-<span class="w">        </span><span class="n">output</span><span class="p">[</span><span class="n">thread_output_idx_start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reg_output</span><span class="p">[</span><span class="n">n</span><span class="p">];</span><span class="w"> </span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<p>We just need to set <code>OUTPUTS_PER_THREAD</code> to 8 and do the hyperparameter search again over block size. We get the following results : </p>
-<div class="codehilite"><pre><span></span><code><span class="n">naive</span><span class="w">     </span><span class="o">:</span><span class="w"> </span><span class="mf">4.60465</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.889101</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">smem</span><span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="mf">4.67256</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.876179</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">reg_block</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.894524</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">4.57673</span><span class="w"> </span><span class="n">GFLOPS</span>
-</code></pre></div>
-
-<p>A factor of approximaly <strong>5.16x</strong> improvement over the naive kernel and a factor of <strong>5.24x</strong> over the shared memory kernel! </p>
-<h2>Micro-optimizations</h2>
-<p>First, all the kernels above initialize <code>cmem_mask</code> to a size of 2048 instead of 2047. I noticed it improves the perfermance slightly.</p>
-<p>These are the <em>micro-optimizations</em> I added to the previous kernels and that worked :</p>
+<p>The code for this is :</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> block_output_idx_start <span class="op">=</span> </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span><span class="dt">size_t</span><span class="op">)</span>blockIdx<span class="op">.</span>x <span class="op">*</span> blockDim<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD<span class="op">;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> thread_output_idx_start <span class="op">=</span> </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    block_output_idx_start <span class="op">+</span> threadIdx<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD<span class="op">;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// GMEM to SMEM transfer happens like in previous kernel</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">// We just need to adapt the indexing.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>__syncthreads<span class="op">();</span> </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>thread_output_idx_start <span class="op">&gt;=</span> output_size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> reg_output<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="op">{};</span> <span class="co">// output registers</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> reg_input<span class="op">[</span><span class="dv">2</span><span class="op">];</span> <span class="co">// input registers </span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">// load first two elements into input registers</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>reg_input<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> shared_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">*</span> <span class="dv">2</span> <span class="op">]</span> <span class="op">;</span> </span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>reg_input<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> shared_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">*</span> <span class="dv">2</span> <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">;</span> </span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> k <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> k <span class="op">&lt;</span> kernel_size<span class="op">;</span> <span class="op">++</span>k<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">float</span> k_val <span class="op">=</span> cmem_mask<span class="op">[</span>k<span class="op">]</span> <span class="op">;</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    reg_output<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">+=</span> k_val <span class="op">*</span> reg_input<span class="op">[</span><span class="dv">0</span><span class="op">];</span> <span class="co">// update first output register</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    reg_output<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">+=</span> k_val <span class="op">*</span> reg_input<span class="op">[</span><span class="dv">1</span><span class="op">];</span> <span class="co">// update second output register </span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    reg_input<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> reg_input<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">;</span> <span class="co">// shift input registers to reuse next iteration</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    reg_input<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> shared_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">*</span> <span class="dv">2</span> <span class="op">+</span> k <span class="op">+</span> <span class="dv">2</span><span class="op">];</span> <span class="co">// load new element from smem </span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co">// write output from registers to gmem</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>output<span class="op">[</span>thread_output_idx_start<span class="op">]</span> <span class="op">=</span> reg_output<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">;</span> </span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>thread_output_idx_start <span class="op">+</span> <span class="dv">1</span> <span class="op">&lt;</span> output_size <span class="op">)</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    output<span class="op">[</span>thread_output_idx_start <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">=</span> reg_output<span class="op">[</span><span class="dv">1</span><span class="op">];</span> </span></code></pre></div>
+<p>Now that you got the idea, let’s generalize this to compute
+<code>OUTPUTS_PER_THREAD</code> outputs per thread. This results in the
+the code below :</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> block_output_idx_start <span class="op">=</span> </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span><span class="dt">size_t</span><span class="op">)</span>blockIdx<span class="op">.</span>x <span class="op">*</span> blockDim<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD<span class="op">;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="at">const</span> <span class="dt">size_t</span> thread_output_idx_start <span class="op">=</span> </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    block_output_idx_start <span class="op">+</span> threadIdx<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD<span class="op">;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">// GMEM to SMEM transfer happens like in previous kernel</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>__syncthreads<span class="op">();</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>thread_output_idx_start <span class="op">&gt;=</span> output_size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> reg_output<span class="op">[</span>OUTPUTS_PER_THREAD<span class="op">]</span> <span class="op">=</span> <span class="op">{};</span> <span class="co">// output registers </span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="dt">float</span> reg_input<span class="op">[</span>OUTPUTS_PER_THREAD<span class="op">];</span> <span class="co">// input registers </span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co">// filling input registers from smem</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma unroll</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> n <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> n <span class="op">&lt;</span> OUTPUTS_PER_THREAD<span class="op">;</span> <span class="op">++</span>n<span class="op">)</span> </span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>threadIdx<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD <span class="op">+</span> n <span class="op">&lt;</span> smem_size <span class="op">)</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        reg_input<span class="op">[</span>n<span class="op">]</span> <span class="op">=</span> smem_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD <span class="op">+</span> n<span class="op">]</span> <span class="op">;</span> </span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> k <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> k <span class="op">&lt;</span> kernel_size<span class="op">;</span> <span class="op">++</span>k<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">const</span> <span class="dt">float</span> k_val <span class="op">=</span> cmem_kernel<span class="op">[</span>k<span class="op">];</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="pp">#pragma unroll </span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> n <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> n <span class="op">&lt;</span> OUTPUTS_PER_THREAD<span class="op">;</span> <span class="op">++</span>n<span class="op">){</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>        reg_output<span class="op">[</span>n<span class="op">]</span> <span class="op">+=</span> k_val <span class="op">*</span> reg_input<span class="op">[</span>n<span class="op">];</span> <span class="co">// updating output registers  </span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="pp">#pragma unroll</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> n <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> n <span class="op">&lt;</span> OUTPUTS_PER_THREAD<span class="op">-</span><span class="dv">1</span><span class="op">;</span> <span class="op">++</span>n<span class="op">){</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>        reg_input<span class="op">[</span>n<span class="op">]</span> <span class="op">=</span> reg_input<span class="op">[</span>n<span class="op">+</span><span class="dv">1</span><span class="op">];</span> <span class="co">// shifting registers</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    reg_input<span class="op">[</span>OUTPUTS_PER_THREAD<span class="op">-</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="co">// load new element from smem </span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>        smem_input<span class="op">[</span>threadIdx<span class="op">.</span>x <span class="op">*</span> OUTPUTS_PER_THREAD <span class="op">+</span> k <span class="op">+</span> OUTPUTS_PER_THREAD<span class="op">];</span> </span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma unroll</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> n <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> n <span class="op">&lt;</span> OUTPUTS_PER_THREAD<span class="op">;</span> <span class="op">++</span>n<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>thread_output_idx_start <span class="op">+</span> n <span class="op">&lt;</span> output_size<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>        <span class="co">// write output from registers to gmem </span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>        output<span class="op">[</span>thread_output_idx_start <span class="op">+</span> n<span class="op">]</span> <span class="op">=</span> reg_output<span class="op">[</span>n<span class="op">];</span> </span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>We just need to set <code>OUTPUTS_PER_THREAD</code> to 8 and do the
+hyperparameter search again over block size. We get the following
+results :</p>
+<pre><code>naive     : 4.60465 ms, 0.889101 GFLOPS
+smem      : 4.67256 ms, 0.876179 GFLOPS
+reg_block : 0.894524 ms, 4.57673 GFLOPS</code></pre>
+<p>A factor of approximaly <strong>5.16x</strong> improvement over the
+naive kernel and a factor of <strong>5.24x</strong> over the shared
+memory kernel!</p>
+<h2 id="micro-optimizations">Micro-optimizations</h2>
+<p>First, all the kernels above initialize <code>cmem_mask</code> to a
+size of 2048 instead of 2047. I noticed it improves the perfermance
+slightly.</p>
+<p>These are the <em>micro-optimizations</em> I added to the previous
+kernels and that worked :</p>
 <ul>
-<li>Using <code>__ldg(input+global_idx)</code> instead of <code>input[global_idx]</code> to read from global memory. This uses a read-only cache that can improve performance for our constant data. </li>
-<li><code>__align__(64) float cmem_mask[MASK_SIZE];</code> to align the constant memory to 64 bytes. This is the size of a cache line, and it can improve cache performance. I am not an expert on this, if you know more about this or have good resources, please let me know. </li>
+<li>Using <code>__ldg(input+global_idx)</code> instead of
+<code>input[global_idx]</code> to read from global memory. This uses a
+read-only cache that can improve performance for our constant data.</li>
+<li><code>__align__(64) float cmem_mask[MASK_SIZE];</code> to align the
+constant memory to 64 bytes. This is the size of a cache line, and it
+can improve cache performance. I am not an expert on this, if you know
+more about this or have good resources, please let me know.</li>
 </ul>
-<p>With these additions, we get the following results : </p>
-<div class="codehilite"><pre><span></span><code><span class="n">naive</span><span class="w">     </span><span class="o">:</span><span class="w"> </span><span class="mf">4.60465</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.889101</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">smem</span><span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="mf">4.67256</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">0.876179</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">reg_block</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.894524</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">4.57673</span><span class="w"> </span><span class="n">GFLOPS</span>
-<span class="n">micro_opt</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mf">0.868636</span><span class="w"> </span><span class="n">ms</span><span class="o">,</span><span class="w"> </span><span class="mf">4.71314</span><span class="w"> </span><span class="n">GFLOPS</span>
-</code></pre></div>
-
-<p>I also tried vectorizing the kernel using <code>float4</code> types, but it didn't improve performance. I don't know the reason for that. The code is on my github. If you have any insights, please let me know. </p>
-<h2>Conclusion</h2>
-<p>Shared memory does not always improve performance. In these cases, profiling is key to understand the bottlenecks. In memory-bound kernels, increases the computation per memory access is the way to go. </p>
+<p>With these additions, we get the following results :</p>
+<pre><code>naive     : 4.60465 ms, 0.889101 GFLOPS
+smem      : 4.67256 ms, 0.876179 GFLOPS
+reg_block : 0.894524 ms, 4.57673 GFLOPS
+micro_opt : 0.868636 ms, 4.71314 GFLOPS</code></pre>
+<p>I also tried vectorizing the kernel using <code>float4</code> types,
+but it didn’t improve performance. I don’t know the reason for that. The
+code is on my github. If you have any insights, please let me know.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Shared memory does not always improve performance. In these cases,
+profiling is key to understand the bottlenecks. In memory-bound kernels,
+increases the computation per memory access is the way to go.</p>
 </body>
 </html>

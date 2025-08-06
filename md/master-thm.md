@@ -1,4 +1,6 @@
-<span style="position: absolute; left:3%; ">[Homepage](homepage.html)
+
+<span style="position: absolute; left:3%; top: 10%;">[Home](homepage.html)
+
 # Master Theorem: An Intuition 
 
 If you are taking a course in algorithms, you have probably encountered the Master Theorem. It is a tool that helps you compute the time complexity of a divide-and-conquer algorithm of the form : 
@@ -41,7 +43,7 @@ So $n^{\log_b a}$ is nothing but the number of leaves in the computational tree 
 </span>
 </center> -->
 
-Let's observe that the first function call (**the root of the tree**) takes $f(n)$ time ($f(n)$ time for combining the results and the rest is done by the other recursive calls). The very last function calls (**leaves**) do just a constant amount of work, so their total time would be $\text{#leaves} \times \text{constant}$ i.e $\Theta(n^{\log_b a})$. So : 
+Let's observe that the first function call (**the root of the tree**) takes $f(n)$ time ($f(n)$ time for combining the results and the rest is done by the other recursive calls). The very last function calls (**leaves**) do just a constant amount of work, so their total time would be $\text{\#leaves} \times \text{constant}$ i.e $\Theta(n^{\log_b a})$. So : 
 
 * Root : $f(n)$ time total. 
 * Leaves : $n^{\log_b a}$ time total. 
@@ -49,7 +51,8 @@ Let's observe that the first function call (**the root of the tree**) takes $f(n
 <!-- The first case assumes that $f(n) = O(n^{\log_b a - \epsilon})$, meaning that $f$ is asymptotically smaller that $n^{\log_b a}$. This intuitively means that *the work done is concentrated at the leaves*. So total runtime will be the total runtime *of the leaves*. And this is indeed the case, as the master theorem gives us that $T(n) = \Theta(n^{\log_b a})$.  -->
 
 Provided with this, we can give an intuitive, unformal, statement of the master theorem : 
-<div style="position: relative; width: 145%;">
+<div style="position:   relative; width: 145%;">
+
   <table style="all: unset;width: 100%; table-layout: fixed;">
     <tr >
       <td style="vertical-align: top;">
@@ -57,7 +60,7 @@ Provided with this, we can give an intuitive, unformal, statement of the master 
       </td>
       <td style="padding: 0 5%; vertical-align: top; width: 30%;">
         <b>work is concentrated at the leaves</b><br>
-        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"$^1$ than the work done at the leafs.<br>
+        $f(n)$ is $O(n^{\log_b a - \epsilon})$, so the work done at the root is "smaller"[^1] than the work done at the leafs.<br>
         <b>total runtime is the total runtime of the leaves</b><br>
         $T(n) = \Theta(n^{\log_b a})$<br><br>
       </td>
@@ -111,4 +114,5 @@ This time, the root takes $n$ time, and its children take $\frac{3n}{4}$ and $\f
 
 
 <center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 60%;"></center>
+
 [^1]: "smaller" or "greater" here are the asymptotic sense. 
