@@ -61,7 +61,14 @@ pre {
     border-left: 2px lightgray solid;
     background-color: #f8f8f8;
     overflow-x: auto;
-    color: #333; /* Explicit text color */
+    color: #333;
+    
+    /* Fix mobile scrolling background issues */
+    background-attachment: local;
+    min-width: 100%;
+    width: max-content;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 pre code {
@@ -186,4 +193,19 @@ img {
     pre {
         border-left: 1px solid black;
     }
-}g
+}
+
+
+.home-button {
+  position: absolute;
+  top: 5rem;
+  left: 3rem;
+  z-index: 1000; /* ensures it's above other content */
+}
+@media (max-width: 1200px) {
+  .home-button {
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 14px;
+  }
+}
