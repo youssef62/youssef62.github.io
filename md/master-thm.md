@@ -1,7 +1,5 @@
-
-<span style="position: absolute; left:3%; top: 10%;">[Home](homepage.html)
-
 # Master Theorem: An Intuition 
+<a href="homepage.html" class="home-button">🏠 Home</a>
 
 If you are taking a course in algorithms, you have probably encountered the Master Theorem. It is a tool that helps you compute the time complexity of a divide-and-conquer algorithm of the form : 
 
