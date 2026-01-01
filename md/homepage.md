@@ -9,7 +9,7 @@ Msc in CS @ EPFL, Lausanne, Switzerland.
 
 Blog posts:
 
-* [Fast 1D Convolution in CUDA](conv1d-cuda.html)
-* [Master Theorem: An Intuition](master-thm.html) 
+* [Fast 1D Convolution in CUDA](conv1d-cuda.html) (Aug 2025)
+* [Master Theorem: An Intuition](master-thm.html) (Jan 2025)
 <!-- * [Intuition behind some probability concepts](prob-intuition.html)   -->
 

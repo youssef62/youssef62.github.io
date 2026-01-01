@@ -8,8 +8,8 @@ I have been learning CUDA for the past few months. Recently, I came across LeetG
 </figure></center>
 In this post, I’ll walk you through how I approached optimizing the 1D convolution kernel, from the initial naive version to the final implementation. I’ll also cover some of the key CUDA concepts and performance tricks that helped along the way. You can find the code on my 
 <a href="https://github.com/youssef62/conv1d-cuda" style="text-decoration: none;">
-  <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="20" style="vertical-align: middle; margin-right: 4px;">
-  GitHub
+<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" width="20" style="vertical-align: middle; margin-right: 4px;">
+GitHub
 </a>.
 
 ## Defining the Problem
@@ -63,7 +63,7 @@ $$
 \frac{8.1408 \times 10^{12}}{320.06 \times 10^9} = 25.44\ \text{FLOPs}.
 $$
 
-Next, let’s look at how many FLOPs our naive kernel does per byte read—this is called the **arithmetic intensity** (AI).
+Next, let’s look at how many FLOPs our naive kernel does per byte read. This is called the **arithmetic intensity** (AI).
 
 Our kernel reads $2 \cdot \text{mask\_size}$ floats per output element (one for `input`, one for `mask`), so a total of $8 \cdot \text{mask\_size}$ bytes. It performs $2 \cdot \text{mask\_size}$ FLOPs (one multiply and one add per input-mask pair). So the arithmetic intensity is:
 
@@ -71,7 +71,7 @@ $$
 \text{AI} = \frac{2 \cdot \text{mask\_size}}{8 \cdot \text{mask\_size}} = \frac{1}{4}.
 $$
 
-This means the kernel does only $0.25\ \text{FLOPs}$ per byte read—far below the hardware limit of $25.44$. In other words, performance is limited by memory throughput, not    computation. This is a **memory-bound** kernel. To improve performence, we need to increase the arithmetic intensity by reducing memory accesses or increasing computation per access. 
+This means the kernel does only $0.25\ \text{FLOPs}$ per byte read; far below the hardware limit of $25.44$. In other words, performance is limited by memory throughput, not    computation. This is a **memory-bound** kernel. To improve performance, we must increase arithmetic intensity, either by reducing memory accesses or doing more computation per byte loaded.
 
 
 ## II. Using shared and constant Memory
@@ -91,10 +91,10 @@ cudaMemcpyToSymbol(cmem_mask, mask_data, sizeof(float) * mask_size);
 **2. Shared memory**  Shared memory is shared among all threads in a block. It is on-chip memory and is much faster than global memory (faster than L1 cache with proper access). We will use it to cache the needed input data and then have fast reads during the convolution computation. All threads in a block will collaborate and load the needed data from input into shared memory, in a **coalesced manner**. Altought a block is responsible for `THREADS_PER_BLOCK` output elements, it needs `THREADS_PER_BLOCK + mask_size - 1` input elements to compute them. See figure below for a visual representation of this :
 
 <figure style="text-align: center;">
-  <img src="../assets/conv1d-cuda/smem_diagram.png" 
-       alt="Shared Memory Diagram" 
-       style="width: 80%; max-width: 700px;">
-  <figcaption>A block responsible for region output[i:j] it needs to access input[i:j+mask_size]</figcaption>
+<img src="../assets/conv1d-cuda/smem_diagram.png" 
+    alt="Shared Memory Diagram" 
+    style="width: 80%; max-width: 700px;">
+<figcaption>A block responsible for region output[i:j] it needs to access input[i:j+mask_size]</figcaption>
 </figure>
 
 
@@ -102,7 +102,7 @@ cudaMemcpyToSymbol(cmem_mask, mask_data, sizeof(float) * mask_size);
 
 The interesting parts of the code become as follows: 
 ```c++
- // idx of the first output element that the block is responsible for
+// idx of the first output element that the block is responsible for
 const size_t block_start =  blockDim.x * blockIdx.x ; 
 // idx of the output element that this thread is responsible for
 const size_t tid = threadIdx.x + block_start ; 
@@ -137,8 +137,8 @@ Note that in the transfer from gmem to smem, we are using a **coalesced access p
 
 The best block size is still 512, and the runtime is now :  
 ```
-naive : 4.60465 ms, 0.889101 GFLOPS
-smem  : 4.67256 ms, 0.876179 GFLOPS
+naive : 4.60465 ms, 889.101 GFLOPS
+smem  : 4.67256 ms, 876.179 GFLOPS
 ```
 
 This is disappointing. The shared memory kernel is slightly slower than the naive one. To understand why, we need to profile both our kernels with `ncu` : 
@@ -173,7 +173,7 @@ This is consistent with the fact that the **Instructions Per Cycle** (IPC) is hi
 
 Finally, for the smem solution, the profiler indicates that shared memory loads account for 40% of the kernel's waiting time between instructions. This is likely due to the presence of many **bank conflicts**, which can significantly increase shared memory access latency.
 
-All these hints us to what we need to do : Less shared memory reads and more computation.
+All this points us to the next strategy : Less shared memory reads and more computation.
 
 ## III. Register Blocking 
 
@@ -183,10 +183,10 @@ Instead of loading entries from `input` multiple times, each thread will load th
 
 <center><figure>
     <img src="../assets/conv1d-cuda/reg_blocking_diagram.png" 
-         alt="Register Blocking Diagram" 
-         style="width: 80%; max-width: 700px;">
+        alt="Register Blocking Diagram" 
+        style="width: 80%; max-width: 700px;">
     <figcaption style="text-align: center;">The sliding window approach for register blocking with 2 outputs per thread. At each iteration, we reuse one input element from the registers and load a new one from smem</figcaption>
-  </figure></center>
+</figure></center>
 
 
 To understand this better, consider how `mask[0]` contributes to the outputs:
@@ -297,26 +297,26 @@ for (int n = 0; n < OUTPUTS_PER_THREAD; ++n) {
 
 We just need to set `OUTPUTS_PER_THREAD` to 8 and do the hyperparameter search again over block size. We get the following results : 
 ```
-naive     : 4.60465 ms, 0.889101 GFLOPS
-smem      : 4.67256 ms, 0.876179 GFLOPS
-reg_block : 0.894524 ms, 4.57673 GFLOPS
+naive     : 4.60465 ms, 889.101 GFLOPS
+smem      : 4.67256 ms, 876.179 GFLOPS
+reg_block : 0.894524 ms, 4 576.73 GFLOPS
 ```
 A factor of approximaly **5.16x** improvement over the naive kernel and a factor of **5.24x** over the shared memory kernel! 
 
 ## Micro-optimizations 
-First, all the kernels above initialize `cmem_mask` to a size of 2048 instead of 2047. I noticed it improves the perfermance slightly.
+First, all the kernels above initialize `cmem_mask` to a size of 2048 instead of 2047. I noticed it brings a slight improvement in performance.
 
 These are the *micro-optimizations* I added to the previous kernels and that worked :
- 
+
 - Using `__ldg(input+global_idx)` instead of `input[global_idx]` to read from global memory. This uses a read-only cache that can improve performance for our constant data. 
 - `__align__(64) float cmem_mask[MASK_SIZE];` to align the constant memory to 64 bytes. This is the size of a cache line, and it can improve cache performance. I am not an expert on this, if you know more about this or have good resources, please let me know. 
 
 With these additions, we get the following results : 
 ```
-naive     : 4.60465 ms, 0.889101 GFLOPS
-smem      : 4.67256 ms, 0.876179 GFLOPS
-reg_block : 0.894524 ms, 4.57673 GFLOPS
-micro_opt : 0.868636 ms, 4.71314 GFLOPS
+naive     : 4.60465 ms, 889.101 GFLOPS
+smem      : 4.67256 ms, 876.179 GFLOPS
+reg_block : 0.894524 ms, 4576.73 GFLOPS
+micro_opt : 0.868636 ms, 4713.14 GFLOPS
 ```
 
 I also tried vectorizing the kernel using `float4` types, but it didn't improve performance. I don't know the reason for that. The code is on my github. If you have any insights, please let me know. 

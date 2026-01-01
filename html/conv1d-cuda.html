@@ -261,8 +261,8 @@ class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb5-1"><a href="#c
 <strong>coalesced access pattern</strong> : consecutive threads in a
 warp, read consecutive elements from global memory.</p>
 <p>The best block size is still 512, and the runtime is now :</p>
-<pre><code>naive : 4.60465 ms, 0.889101 GFLOPS
-smem  : 4.67256 ms, 0.876179 GFLOPS</code></pre>
+<pre><code>naive : 4.60465 ms, 889.101 GFLOPS
+smem  : 4.67256 ms, 876.179 GFLOPS</code></pre>
 <p>This is disappointing. The shared memory kernel is slightly slower
 than the naive one. To understand why, we need to profile both our
 kernels with <code>ncu</code> :</p>
@@ -476,9 +476,9 @@ class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb9-1"><a href="#c
 <p>We just need to set <code>OUTPUTS_PER_THREAD</code> to 8 and do the
 hyperparameter search again over block size. We get the following
 results :</p>
-<pre><code>naive     : 4.60465 ms, 0.889101 GFLOPS
-smem      : 4.67256 ms, 0.876179 GFLOPS
-reg_block : 0.894524 ms, 4.57673 GFLOPS</code></pre>
+<pre><code>naive     : 4.60465 ms, 889.101 GFLOPS
+smem      : 4.67256 ms, 876.179 GFLOPS
+reg_block : 0.894524 ms, 4 576.73 GFLOPS</code></pre>
 <p>A factor of approximaly <strong>5.16x</strong> improvement over the
 naive kernel and a factor of <strong>5.24x</strong> over the shared
 memory kernel!</p>
@@ -498,10 +498,10 @@ can improve cache performance. I am not an expert on this, if you know
 more about this or have good resources, please let me know.</li>
 </ul>
 <p>With these additions, we get the following results :</p>
-<pre><code>naive     : 4.60465 ms, 0.889101 GFLOPS
-smem      : 4.67256 ms, 0.876179 GFLOPS
-reg_block : 0.894524 ms, 4.57673 GFLOPS
-micro_opt : 0.868636 ms, 4.71314 GFLOPS</code></pre>
+<pre><code>naive     : 4.60465 ms, 889.101 GFLOPS
+smem      : 4.67256 ms, 876.179 GFLOPS
+reg_block : 0.894524 ms, 4576.73 GFLOPS
+micro_opt : 0.868636 ms, 4713.14 GFLOPS</code></pre>
 <p>I also tried vectorizing the kernel using <code>float4</code> types,
 but it didn’t improve performance. I don’t know the reason for that. The
 code is on my github. If you have any insights, please let me know.</p>
