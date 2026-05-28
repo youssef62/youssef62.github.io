@@ -9,7 +9,7 @@ Msc in CS @ EPFL, Lausanne, Switzerland.
 
 Blog posts:
 
-* [Sharing is Scaling: Efficient RL Fine-tuning with Multi-tenancy](https://servingdev.swissai.svc.cscs.ch/articles/04-multitenancy) (May 2026)
+* [Efficient RL Fine-tuning with Multi-tenancy](https://servingdev.swissai.svc.cscs.ch/articles/04-multitenancy) (May 2026)
 * [Fast 1D Convolution in CUDA](conv1d-cuda.html) (Aug 2025)
 * [Master Theorem: An Intuition](master-thm.html) (Jan 2025)
 <!-- * [Intuition behind some probability concepts](prob-intuition.html)   -->
