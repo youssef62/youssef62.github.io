@@ -1,3 +1,7 @@
+---
+title: "Master Theorem: An Intuition"
+---
+
 # Master Theorem: An Intuition 
 <a href="homepage.html" class="home-button">🏠 Home</a>
 

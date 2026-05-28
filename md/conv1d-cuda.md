@@ -1,3 +1,6 @@
+---
+title: "Fast 1D Convolution in CUDA"
+---
 
 # Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU
 <a href="homepage.html" class="home-button">🏠 Home</a>
