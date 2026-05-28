@@ -1,8 +1,7 @@
 ---
-title: "Fast 1D Convolution in CUDA"
+title: "Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU"
 ---
 
-# Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU
 <a href="homepage.html" class="home-button">🏠 Home</a>
 
 I have been learning CUDA for the past few months. Recently, I came across LeetGPU, a platform with many CUDA challenges. I spent a few weeks thinking about how to optimize a 1D convolution kernel. After a few weeks of experimenting, debugging, and tuning, I managed to reach the top of the leaderboard on the NVIDIA T4 GPU. 

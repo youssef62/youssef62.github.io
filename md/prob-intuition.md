@@ -2,8 +2,6 @@
 title: Intuition behind some probability concepts
 ---
 
-# Intuition behind some probability concepts
-
 These are some intuitions that I have either read or developed over the years. Most of them are accessible after an introductory course in probability.  
 
 ## Markov's inequality

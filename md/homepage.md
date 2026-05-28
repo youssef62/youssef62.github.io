@@ -2,8 +2,6 @@
 title: "Youssef Boughizane"
 ---
 
-# Youssef Boughizane 
-
 
 Msc in CS @ EPFL, Lausanne, Switzerland. 
 
