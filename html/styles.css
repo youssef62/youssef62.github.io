@@ -54,6 +54,7 @@ a:hover {
 /* Code blocks (Pandoc generates these) */
 pre {
     font-family: monospace;
+    font-size: 0.8em;
     text-align: left;
     padding: 0.5em 0 0.5em 1em;
     margin: 1em 0 1em 1em;
@@ -62,11 +63,10 @@ pre {
     background-color: #f8f8f8;
     overflow-x: auto;
     color: #333;
-    
+
     /* Fix mobile scrolling background issues */
     background-attachment: local;
-    min-width: 100%;
-    width: max-content;
+    max-width: 100%;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
@@ -154,6 +154,19 @@ img {
     height: auto;
 }
 
+/* Shrink-to-fit table + figure, for small result sets */
+.compact table {
+    width: auto;
+    margin: 1em auto;
+    font-size: 0.85em;
+}
+
+.compact img {
+    max-width: 30em;
+    display: block;
+    margin: 0 auto;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 35em) {
     body {
@@ -198,12 +211,19 @@ img {
 
 .home-button {
   position: absolute;
-  top: 5rem;
+  top: 1rem;   /* aligns with the first line of body text */
   left: 3rem;
   z-index: 1000; /* ensures it's above other content */
 }
+
+/* On pages with a title block, drop the button down to the title's level. */
+#title-block-header ~ p .home-button {
+  top: 5rem;
+}
+
 @media (max-width: 1200px) {
-  .home-button {
+  .home-button,
+  #title-block-header ~ p .home-button {
     top: 0.5rem;
     left: 0.5rem;
     font-size: 14px;

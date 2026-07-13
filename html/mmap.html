@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>What is mmap?</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+</head>
+<body>
+<p><em>I am currently working on loading language models in a fast way.
+In this context, I have been encountering the <code>mmap</code> system
+call a lot. In this blog, I document how I went to understand
+<code>mmap</code> in an experimental way.</em></p>
+<h1 id="what-is-mmap">What is <code>mmap</code>?</h1>
+<p><a href="homepage.html" class="home-button">🏠 Home</a></p>
+<!-- * why can mmap be shared ?
+* what are the most important applications of mmap ?
+* why is mmap at the end of the heap ?
+* the mmap region and the difference with the heap.  -->
+<p>We will ask this question to the man page of <code>mmap</code> using
+the command <code>man mmap</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="op">*</span>mmap<span class="op">(</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>addr<span class="op">,</span> </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">size_t</span> len<span class="op">,</span> </span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> prot<span class="op">,</span> </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> flags<span class="op">,</span> </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> fd<span class="op">,</span> </span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    off_t offset</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<blockquote>
+<p>The mmap() <a href="https://en.wikipedia.org/wiki/System_call">system
+call</a> causes the pages starting at <strong>addr</strong> and
+continuing for at most <strong>len</strong> bytes to be mapped from the
+object described by <strong>fd</strong>, starting at byte offset
+<strong>offset</strong>.</p>
+</blockquote>
+<p>From previous experience, I know that <code>mmap</code> is used for
+example to read from a file in the same way we read memory i.e by going
+through virtual addresses<a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a>.</p>
+<p>Let’s also look at somes values that <code>flags</code> can take:</p>
+<ul>
+<li><p><code>MAP_ANON</code> Map anonymous memory not associated with
+any specific file. The offset argument is ignored.</p></li>
+<li><p><code>MAP_FILE</code> Mapped from a regular file. (This is the
+default mapping type, and need not be specified.)</p></li>
+</ul>
+<p><code>MAP_ANON</code> essentialy is what enables using
+<code>mmap</code> to map to main memory.</p>
+<h3 id="how-does-the-mapping-happen">How does the mapping happen?</h3>
+<p>In <code>mmap</code>, the mapping happens in two steps:</p>
+<ol type="1">
+<li>First, a virtual memory region is reserved for the process<a
+href="#fn2" class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a>.</li>
+<li>Then, when the process first accesses this virtual memory region, a
+mapping to a physical page<a href="#fn3" class="footnote-ref"
+id="fnref3" role="doc-noteref"><sup>3</sup></a> is created.</li>
+</ol>
+<p><strong>1. Reserving a virtual memory region.</strong> Let’s
+understand the first point. A process holds a list of virtual memory
+regions. Each virtual memory region is described by a
+<code>struct vm_area_struct</code> in the kernel<a href="#fn4"
+class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>.
+<em>Reserving a virtual memory region</em> means that the kernel will
+create a new <code>struct vm_area_struct</code> and add it to the list
+of virtual memory regions of the process. Let’s see this in
+practice.</p>
+<p>We will use <code>mmap</code> with <code>addr</code> set to
+<code>NULL</code>, which means that the kernel will choose the address
+for us. We will also use <code>MAP_ANONYMOUS</code> to indicate that we
+want to map a portion of main memory, not a file. <code>fd</code> will
+be set to <code>-1</code> and <code>offset</code> to <code>0</code>,
+since we are not mapping a file.</p>
+<p>We will then print the contents of <code>/proc/self/maps</code> which
+are the process’s virtual memory addresses. We will do this before and
+after the <code>mmap</code> call to see the difference.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> dump_maps<span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>label<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;</span><span class="sc">\n</span><span class="st">--- /proc/self/maps (</span><span class="sc">%s</span><span class="st">) ---</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> label<span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FILE</span> <span class="op">*</span>f <span class="op">=</span> fopen<span class="op">(</span><span class="st">&quot;/proc/self/maps&quot;</span><span class="op">,</span> <span class="st">&quot;r&quot;</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>f<span class="op">)</span> <span class="op">{</span> perror<span class="op">(</span><span class="st">&quot;fopen /proc/self/maps&quot;</span><span class="op">);</span> <span class="cf">return</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> line<span class="op">[</span><span class="dv">512</span><span class="op">];</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>fgets<span class="op">(</span>line<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>line<span class="op">),</span> f<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        fputs<span class="op">(</span>line<span class="op">,</span> stdout<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    fclose<span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    fflush<span class="op">(</span>stdout<span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">void</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    dump_maps<span class="op">(</span><span class="st">&quot;before mmap&quot;</span><span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">void</span> <span class="op">*</span>addr <span class="op">=</span> mmap<span class="op">(</span>NULL<span class="op">,</span> <span class="dv">4096</span><span class="op">,</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>                      PROT_READ <span class="op">|</span> PROT_WRITE<span class="op">,</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                      MAP_PRIVATE <span class="op">|</span> MAP_ANONYMOUS<span class="op">,</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>                      <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>addr <span class="op">==</span> MAP_FAILED<span class="op">)</span> <span class="op">{</span> perror<span class="op">(</span><span class="st">&quot;mmap&quot;</span><span class="op">);</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    printf<span class="op">(</span><span class="st">&quot;</span><span class="sc">\n</span><span class="st">Mapped address: </span><span class="sc">%p\n</span><span class="st">&quot;</span><span class="op">,</span> addr<span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    dump_maps<span class="op">(</span><span class="st">&quot;after mmap&quot;</span><span class="op">);</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><em>Source: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/mmap_basics/mmap_basics.c">mmap_basics.c</a></em></p>
+<p>Output(better looked at on a laptop):</p>
+<pre><code>--- /proc/self/maps (before mmap) ---
+00400000-00401000 r-xp 00000000 00:2e 8                                  /w/mmap_basics
+0041f000-00420000 r--p 0000f000 00:2e 8                                  /w/mmap_basics
+00420000-00421000 rw-p 00010000 00:2e 8                                  /w/mmap_basics
+2a0b5000-2a0d6000 rw-p 00000000 00:00 0                                  [heap]
+ffffb7700000-ffffb789c000 r-xp 00000000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb789c000-ffffb78ad000 ---p 0019c000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78ad000-ffffb78b0000 r--p 0019d000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78b0000-ffffb78b2000 rw-p 001a0000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78b2000-ffffb78bf000 rw-p 00000000 00:00 0 
+ffffb78c1000-ffffb78e9000 r-xp 00000000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb78f1000-ffffb78f3000 rw-p 00000000 00:00 0 
+ffffb78fa000-ffffb78fc000 rw-p 00000000 00:00 0 
+ffffb78fc000-ffffb78fe000 r--p 00000000 00:00 0                          [vvar]
+ffffb78fe000-ffffb78ff000 r-xp 00000000 00:00 0                          [vdso]
+ffffb78ff000-ffffb7901000 r--p 0002e000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb7901000-ffffb7902000 rw-p 00030000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb7902000-ffffb7903000 rw-p 00000000 00:00 0 
+ffffca2b8000-ffffca2d9000 rw-p 00000000 00:00 0                          [stack]
+
+Mapped address: 0xffffb78f9000
+
+--- /proc/self/maps (after mmap) ---
+00400000-00401000 r-xp 00000000 00:2e 8                                  /w/mmap_basics
+0041f000-00420000 r--p 0000f000 00:2e 8                                  /w/mmap_basics
+00420000-00421000 rw-p 00010000 00:2e 8                                  /w/mmap_basics
+2a0b5000-2a0d6000 rw-p 00000000 00:00 0                                  [heap]
+ffffb7700000-ffffb789c000 r-xp 00000000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb789c000-ffffb78ad000 ---p 0019c000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78ad000-ffffb78b0000 r--p 0019d000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78b0000-ffffb78b2000 rw-p 001a0000 00:3f 180862                     /usr/lib/aarch64-linux-gnu/libc.so.6
+ffffb78b2000-ffffb78bf000 rw-p 00000000 00:00 0 
+ffffb78c1000-ffffb78e9000 r-xp 00000000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb78f1000-ffffb78f3000 rw-p 00000000 00:00 0 
+ffffb78f9000-ffffb78fc000 rw-p 00000000 00:00 0 
+ffffb78fc000-ffffb78fe000 r--p 00000000 00:00 0                          [vvar]
+ffffb78fe000-ffffb78ff000 r-xp 00000000 00:00 0                          [vdso]
+ffffb78ff000-ffffb7901000 r--p 0002e000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb7901000-ffffb7902000 rw-p 00030000 00:3f 180842                     /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+ffffb7902000-ffffb7903000 rw-p 00000000 00:00 0 
+ffffca2b8000-ffffca2d9000 rw-p 00000000 00:00 0                          [stack]</code></pre>
+<p>First, we can get a sense of what kind of information the kernel
+keeps of the processes’ memory regions. We can see that our program
+<code>mmap_basics</code> has is stored in the virtual memory region
+<code>00400000-00421000</code>. The heap is stored in the virtual memory
+region <code>2a0b5000-2a0d6000</code>. The stack is stored in the
+virtual memory region <code>ffffca2b8000-ffffca2d9000</code>.</p>
+<p>Answering our question: We can see that <code>mmap</code> gives us an
+address <code>0xffffb78f9000</code> and when we look at the
+<code>/proc/self/maps</code> output, we can see that this address range
+is present in the process’s virtual address space
+<code>ffffb78f9000-ffffb78fc000 rw-p 00000000 00:00</code>.</p>
+<p><em>Conclusion: <code>mmap</code> reserves a virtual memory region
+for the process by adding a new <code>struct vm_area_struct</code> to
+the list of virtual memory regions of the process.</em></p>
+<p><strong>2. Lazy memory mmaping.</strong> One really important thing
+to note is that the mmaping to a physical page happens
+<strong>lazily</strong>. That is until the process actually accesses the
+memory at that address, the kernel will not allocate a physical page for
+it. Let’s see this in practice.</p>
+<p>To show this, we can watch two fields from
+<code>/proc/self/status</code>:</p>
+<ul>
+<li><code>VmSize</code> — total <strong>virtual</strong> address space
+of the process.</li>
+<li><code>VmRSS</code> — resident set size, i.e. the
+<strong>physical</strong> memory currently backing the process.</li>
+</ul>
+<p>The plan is:</p>
+<ol type="1">
+<li><code>mmap</code> a large anonymous region (256 MiB).</li>
+<li>Print <code>VmSize</code> and <code>VmRSS</code>.</li>
+<li>Touch one byte in every page of the region — this forces the kernel
+to fault a physical page in for each touched page.</li>
+<li>Print <code>VmSize</code> and <code>VmRSS</code> again.</li>
+</ol>
+<p>The full program is in <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/lazy_alloc/lazy_alloc.c">lazy_alloc.c</a>.
+The interesting part is:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">const</span> <span class="dt">size_t</span> N <span class="op">=</span> <span class="op">(</span><span class="dt">size_t</span><span class="op">)</span><span class="dv">256</span> <span class="op">*</span> <span class="dv">1024</span> <span class="op">*</span> <span class="dv">1024</span><span class="op">;</span>  <span class="co">// 256 MiB</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>print_status<span class="op">(</span><span class="st">&quot;before mmap&quot;</span><span class="op">);</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>p <span class="op">=</span> mmap<span class="op">(</span>NULL<span class="op">,</span> N<span class="op">,</span> PROT_READ <span class="op">|</span> PROT_WRITE<span class="op">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>               MAP_PRIVATE <span class="op">|</span> MAP_ANONYMOUS<span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>print_status<span class="op">(</span><span class="st">&quot;after mmap, before touch&quot;</span><span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="dt">size_t</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> N<span class="op">;</span> i <span class="op">+=</span> <span class="dv">4096</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    p<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> <span class="dv">1</span><span class="op">;</span>   <span class="co">// touch every page</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>print_status<span class="op">(</span><span class="st">&quot;after touching every page&quot;</span><span class="op">);</span></span></code></pre></div>
+<p>Running it:</p>
+<pre><code>[before mmap]
+VmSize:     2136 kB   (virtual memory for this process)
+VmRSS:       692 kB   (physical memory for this process)
+
+mmap&#39;d 256 MiB at 0xffff85a00000
+
+[after mmap, before touch]
+VmSize:   264412 kB   (virtual memory for this process)
+VmRSS:     1108 kB   (physical memory for this process)
+
+[after touching every page]
+VmSize:   264412 kB   (virtual memory for this process)
+VmRSS:   263344 kB   (physical memory for this process)</code></pre>
+<p>Reading this:</p>
+<ul>
+<li>After <code>mmap</code>, <code>VmSize</code> jumps by ~256 MiB
+immediately — the kernel reserved 256 MiB of <strong>virtual</strong>
+address space. But <code>VmRSS</code> barely moves, because no physical
+pages have been allocated yet. The mapping exists only as bookkeeping in
+the kernel’s VMA table.</li>
+<li>After we touch every page, <code>VmRSS</code> jumps by ~256 MiB.
+Each write triggered a page fault<a href="#fn5" class="footnote-ref"
+id="fnref5" role="doc-noteref"><sup>5</sup></a>; the kernel handled it
+by allocating a physical page and mapping it into the process’s page
+table<a href="#fn6" class="footnote-ref" id="fnref6"
+role="doc-noteref"><sup>6</sup></a>. Only now does the mapping consume
+actual RAM.</li>
+</ul>
+<p>This is why on Linux you can <code>mmap</code> an amount of memory
+that is much larger than the system’s physical RAM: as long as you never
+touch most of it, it costs nothing in physical memory. This is what
+<code>malloc</code> uses when it needs to allocate a large chunk of
+memory: it <code>mmap</code>s it, and only when the program actually
+uses it does the kernel allocate physical pages.</p>
+<p><em>Conclusion: <code>mmap</code> reserves a virtual memory region
+for the process, but the mapping to physical pages happens lazily, only
+when the process accesses the memory.</em></p>
+<h3 id="when-and-why-malloc-does-use-mmap">When and why malloc does use
+mmap ?</h3>
+<p>We mentioned earlier that <code>malloc</code> uses <code>mmap</code>
+under the hood for large allocations. Let’s see how this works in
+practice. We can watch this happen with <code>strace</code>. Our program
+does one small <code>malloc(1 KiB)</code>, one large
+<code>malloc(1 MiB)</code>, and then frees both, printing markers to
+stderr between each step so they interleave with the syscall trace:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>mark<span class="op">(</span><span class="st">&quot;small malloc (1 KiB)&quot;</span><span class="op">);</span> <span class="co">// just for printing</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="op">*</span>small <span class="op">=</span> malloc<span class="op">(</span><span class="dv">1024</span><span class="op">);</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>mark<span class="op">(</span><span class="st">&quot;large malloc (1 MiB)&quot;</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="op">*</span>large <span class="op">=</span> malloc<span class="op">(</span><span class="dv">1024</span> <span class="op">*</span> <span class="dv">1024</span><span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>mark<span class="op">(</span><span class="st">&quot;free small&quot;</span><span class="op">);</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>free<span class="op">(</span>small<span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>mark<span class="op">(</span><span class="st">&quot;free large&quot;</span><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>free<span class="op">(</span>large<span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>mark<span class="op">(</span><span class="st">&quot;done&quot;</span><span class="op">);</span></span></code></pre></div>
+<p><em>Source: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/malloc_strace/malloc_strace.c">malloc_strace.c</a></em></p>
+<p>Let’s run it under <code>strace</code> to see what syscalls are
+made:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">strace</span> <span class="at">-e</span> trace=brk,mmap,munmap ./malloc_strace</span></code></pre></div>
+<p>The relevant tail of the output:</p>
+<pre><code>--- small malloc (1 KiB) ---
+brk(NULL)              = 0x18281000        # query current program break
+brk(0x182a2000)        = 0x182a2000        # grow heap by 132 KiB
+--- large malloc (1 MiB) ---
+mmap(NULL, 1052672, PROT_READ|PROT_WRITE,
+     MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xffffb6b4f000
+--- free small ---
+                                            # no syscall
+--- free large ---
+munmap(0xffffb6b4f000, 1052672) = 0</code></pre>
+<p><em>Full trace: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/malloc_strace/malloc_strace.out">malloc_strace.out</a></em></p>
+<p>A few things to notice:</p>
+<ul>
+<li>The small <code>malloc</code> triggered <code>brk</code>, not
+<code>mmap</code>. glibc grew the heap by 132 KiB (much more than the 1
+KiB requested) so future small allocations can be served without another
+syscall.</li>
+<li>The large <code>malloc</code> used <code>mmap</code> for a fresh
+anonymous region. The requested size is <code>1 MiB + 4 KiB</code>
+because glibc reserves one extra page for its chunk header.</li>
+</ul>
+<p><strong>Why the split?</strong> It comes down to the fact that the
+heap is a <strong>single contiguous region</strong> whose size is
+controlled by one number: the program break. <code>brk</code> can only
+move that break up or down, so the only memory you can ever return to
+the kernel from the heap is the memory at the very top of it. Anything
+trapped underneath a still-live allocation is stuck.</p>
+<p>Imagine allocating a 100 MiB buffer <em>inside</em> the heap and then
+freeing it while a tiny 8-byte allocation sits above it:</p>
+<pre><code>     heap grows this way ─────────►
+   ┌──────────────┬────────────────────────┬──────┬───────┐
+   │ small allocs │  100 MiB (freed)       │ 8 B  │ ...   │  program break ─►
+   └──────────────┴────────────────────────┴──────┴───────┘
+                            ▲
+                            └── cannot be returned to the OS:
+                                the 8 B chunk above it pins the break.</code></pre>
+<p>Even though the 100 MiB is unused, glibc cannot call <code>brk</code>
+to shrink the heap because that would also invalidate the 8-byte chunk
+sitting above it. The freed memory just stays in a free list, wasting
+RSS. <code>mmap</code> regions don’t have this problem, each one is an
+<strong>independent</strong> VMA: So by routing large allocations
+through <code>mmap</code>, glibc guarantees that a single big
+<code>free()</code> actually gives the memory back to the kernel.</p>
+<p><em>Conclusion: <code>malloc</code> uses <code>mmap</code> for large
+allocations because it allows the kernel to reclaim memory immediately
+when the allocation is freed, whereas small allocations are served from
+the heap and cannot be returned to the kernel until the program break is
+moved down.</em></p>
+<h3 id="what-happen-when-we-use-mmap-to-access-a-file">What happen when
+we use mmap to access a file?</h3>
+<p>First, let’s see first what happens when we use <code>read()</code>
+to access a file. We will use <code>strace</code> to trace the system
+calls made by our program. We will then compare the system calls made
+when we use <code>mmap</code> to access a file.</p>
+<p>Here’s the code we will use to access a file using
+<code>read()</code> and <code>mmap()</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define FILE_SIZE </span><span class="op">(</span><span class="dv">16</span><span class="pp"> </span><span class="op">*</span><span class="pp"> </span><span class="dv">16384</span><span class="op">)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>argv<span class="op">[])</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">3</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        fprintf<span class="op">(</span>stderr<span class="op">,</span> <span class="st">&quot;usage: </span><span class="sc">%s</span><span class="st"> &lt;read|mmap&gt; &lt;file&gt;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">,</span> argv<span class="op">[</span><span class="dv">0</span><span class="op">]);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> fd <span class="op">=</span> open<span class="op">(</span>argv<span class="op">[</span><span class="dv">2</span><span class="op">],</span> O_RDONLY<span class="op">);</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>fd <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span> perror<span class="op">(</span><span class="st">&quot;open&quot;</span><span class="op">);</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> pgsz <span class="op">=</span> sysconf<span class="op">(</span>_SC_PAGESIZE<span class="op">);</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    print_faults<span class="op">(</span><span class="st">&quot;before&quot;</span><span class="op">);</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">volatile</span> <span class="dt">char</span> sink <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>strcmp<span class="op">(</span>argv<span class="op">[</span><span class="dv">1</span><span class="op">],</span> <span class="st">&quot;read&quot;</span><span class="op">)</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">static</span> <span class="dt">char</span> buf<span class="op">[</span>FILE_SIZE<span class="op">];</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">ssize_t</span> n <span class="op">=</span> read<span class="op">(</span>fd<span class="op">,</span> buf<span class="op">,</span> FILE_SIZE<span class="op">);</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>n <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> sink <span class="op">^=</span> buf<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">char</span> <span class="op">*</span>p <span class="op">=</span> mmap<span class="op">(</span>NULL<span class="op">,</span> FILE_SIZE<span class="op">,</span> PROT_READ<span class="op">,</span> MAP_PRIVATE<span class="op">,</span> fd<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">size_t</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> FILE_SIZE<span class="op">;</span> i <span class="op">+=</span> pgsz<span class="op">)</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>            sink <span class="op">^=</span> p<span class="op">[</span>i<span class="op">];</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        munmap<span class="op">(</span>p<span class="op">,</span> FILE_SIZE<span class="op">);</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">(</span><span class="dt">void</span><span class="op">)</span>sink<span class="op">;</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    print_faults<span class="op">(</span><span class="st">&quot;after&quot;</span><span class="op">);</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    close<span class="op">(</span>fd<span class="op">);</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><em>Source: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/mmap_file/mmap_file.c">mmap_file.c</a></em></p>
+<p>Here are the <code>strace</code> commands we will use to trace the
+system calls made by our program:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dd</span> if=/dev/urandom of=testfile.bin bs=16384 count=16 status=none</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> purge <span class="co"># clear the page cache</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">./mmap_file</span> mmap testfile.bin <span class="kw">|</span> <span class="fu">tee</span> results_mmap.txt</span></code></pre></div>
+<p>We show the results after the
+<code>openat(..., "testfile.bin", ..)</code> system call.</p>
+<pre><code>openat(AT_FDCWD, &quot;testfile.bin&quot;, O_RDONLY) = 3
+read(3, &quot;\260\273\250|;\363\363\350\353G\177\253\2624Y\334\257\353\4n\1772*\320\226\24x\360\264\315\223\377&quot;..., 262144) = 262144</code></pre>
+<p><em>Full trace: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/mmap_file/strace_read.txt">strace_read.txt</a></em></p>
+<p>We have 1 <code>read()</code> system call that reads the entire file
+into the page cache<a href="#fn7" class="footnote-ref" id="fnref7"
+role="doc-noteref"><sup>7</sup></a>. The kernel will then map the page
+cache to our virtual memory.</p>
+<p>Let’s now see the results when we use <code>mmap()</code> to access
+the file:</p>
+<pre><code>openat(AT_FDCWD, &quot;testfile.bin&quot;, O_RDONLY) = 3
+mmap(NULL, 262144, PROT_READ, MAP_PRIVATE, 3, 0) = 0xffffa6af0000
+munmap(0xffffa6af0000, 262144)          = 0</code></pre>
+<p><em>Full trace: <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/mmap_file/strace_mmap.txt">strace_mmap.txt</a></em></p>
+<p>We have the <code>mmap()</code> system call that maps the file into
+our virtual memory and the <code>munmap()</code> system call that unmaps
+the file from our virtual memory. But we do not have a system call for
+reading the file into the page cache. This is because the kernel will
+read the file into the page cache <strong>when a page fault
+occurs</strong>.</p>
+<p>To check that, we will print the number of page faults before and
+after accessing the file. We will use the <code>getrusage()</code>
+system call to get the number of page faults<a href="#fn8"
+class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>. I
+run this experiment on my mac and I get the following results:</p>
+<p><code>read</code>:</p>
+<pre><code>[before] majflt=37
+[after] majflt=37</code></pre>
+<p><code>mmap</code>:</p>
+<pre><code>[before] majflt=114
+[after] majflt=130</code></pre>
+<p>We can see, that we have 16 major page faults when we use
+<code>mmap()</code> to access the file. One per page fault.</p>
+<p>Note: This experiment was run macOS, as opposed to Linux through
+docker like the previous experiments. With the docker setup, I was only
+seing one 1 major page fault when using <code>mmap()</code> to access
+the file. I am not sure why this is the case.</p>
+<p><em>Conclusion: When we read a <code>mmap</code>ed file through
+virtual memory, either that address is mapped to a page in the page
+cache or it will trigger a page fault and the kernel will read the file
+into the page cache.</em></p>
+<h3
+id="how-good-is-mmap-for-large-sequential-reads-compared-to-read">How
+good is <code>mmap</code> for large sequential reads compared to
+<code>read()</code>?</h3>
+<p>We measured both approaches on files of increasing size on macOS. For
+each size, we open the file, walk through it once (one byte per page for
+<code>mmap</code>, 1 MiB chunks for <code>read</code>) and record the
+wall time. The full benchmark is in <a
+href="https://github.com/youssef62/mmap_experiments/blob/master/experiments/profile_macos/mmap_file_bench.c">mmap_file_bench.c</a>.</p>
+<p>Results (seconds):</p>
+<div class="compact">
+<table>
+<thead>
+<tr>
+<th>size</th>
+<th style="text-align: right;">read</th>
+<th style="text-align: right;">mmap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4 MiB</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: right;">0.01</td>
+</tr>
+<tr>
+<td>16 MiB</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">0.04</td>
+</tr>
+<tr>
+<td>64 MiB</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">0.10</td>
+</tr>
+<tr>
+<td>256 MiB</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">0.54</td>
+</tr>
+<tr>
+<td>1 GiB</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">1.84</td>
+</tr>
+<tr>
+<td>4 GiB</td>
+<td style="text-align: right;">3.77</td>
+<td style="text-align: right;">7.72</td>
+</tr>
+</tbody>
+</table>
+<figure>
+<img
+src="https://raw.githubusercontent.com/youssef62/mmap_experiments/master/experiments/profile_macos/sweep.png"
+alt="read vs mmap sweep" />
+<figcaption aria-hidden="true">read vs mmap sweep</figcaption>
+</figure>
+</div>
+<p><code>read()</code> wins clearly as soon as the file is more than a
+few MiB. The reason is that <code>mmap</code> pays one page fault per 4
+KiB page: each fault traps into the kernel, allocates a page in the page
+cache, and updates the process page table. For a 1 GiB file that is
+262144 faults, all on the critical path. <code>read()</code> on the
+other hand asks the kernel to copy a large chunk in a single syscall,
+which lets the kernel issue big sequential I/Os and amortize the
+per-call overhead.</p>
+<p><em>Conclusion: for a large sequential scan, <code>read()</code> is
+faster than <code>mmap()</code>.</em></p>
+<h3 id="conclusion">Conclusion</h3>
+<p>We saw what <code>mmap</code> does and how it works. We also
+investigated how <code>malloc</code> uses <code>mmap</code> for large
+allocations and how <code>mmap</code> can be used to access files. We
+benchmarked <code>mmap</code> and <code>read()</code> for large
+sequential reads and found that <code>read()</code> is faster than
+<code>mmap()</code> for large files. The reason, as our last experiment
+showed, is that <code>mmap</code> pays one page fault per page while
+<code>read()</code> can copy a large chunk in a single syscall.</p>
+<hr />
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p><strong>virtual memory</strong>: an abstraction of the
+memory resources that are available to a process. Each process can
+access its own virtual address space, without worrying about the
+physical memory of the machine.<a href="#fnref1" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><strong>process</strong>: a program in execution.
+Isolated from other processes. In particular, each process has its own
+virtual address space.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p><strong>page</strong>: a fixed-size block of contiguous
+memory.<a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p><strong>kernel</strong>: the part of an OS that manages
+the system’s important resources (the CPU, memory, and I/O devices).<a
+href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p><strong>page fault</strong>: occurs when a process
+accesses a virtual address whose page is not currently mapped in its
+page table.<a href="#fnref5" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p><strong>page table</strong>: a table that maps virtual
+addresses to physical addresses.<a href="#fnref6" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p><strong>page cache</strong>: a cache of pages in memory
+that have been read from disk.<a href="#fnref7" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p><strong>major/minor page fault</strong>: a major page
+fault occurs when the kernel has to read the page from disk to satisfy
+the access. A minor page fault occurs when the page is already in RAM
+(e.g. in the page cache) but not yet wired into the process’s page
+table, so the kernel can satisfy the request without going to disk.<a
+href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>
