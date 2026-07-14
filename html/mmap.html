@@ -118,9 +118,11 @@ continuing for at most <strong>len</strong> bytes to be mapped from the
 object described by <strong>fd</strong>, starting at byte offset
 <strong>offset</strong>.</p>
 </blockquote>
-<p>From previous experience, I know that <code>mmap</code> is used for
-example to read from a file in the same way we read memory i.e by going
-through virtual addresses<a href="#fn1" class="footnote-ref" id="fnref1"
+<p>First, we can deduce that <code>mmap</code> stands for “memory
+mapping”. One immediate benefit that we can see is that
+<code>mmap</code> could be used for example to read from a file in the
+same way we read memory i.e by going through virtual addresses<a
+href="#fn1" class="footnote-ref" id="fnref1"
 role="doc-noteref"><sup>1</sup></a>.</p>
 <p>Let’s also look at somes values that <code>flags</code> can take:</p>
 <ul>
@@ -131,7 +133,7 @@ default mapping type, and need not be specified.)</p></li>
 </ul>
 <p><code>MAP_ANON</code> essentialy is what enables using
 <code>mmap</code> to map to main memory.</p>
-<h3 id="how-does-the-mapping-happen">How does the mapping happen?</h3>
+<h2 id="how-does-the-mapping-happen">How does the mapping happen?</h2>
 <p>In <code>mmap</code>, the mapping happens in two steps:</p>
 <ol type="1">
 <li>First, a virtual memory region is reserved for the process<a
@@ -155,10 +157,10 @@ practice.</p>
 for us. We will also use <code>MAP_ANONYMOUS</code> to indicate that we
 want to map a portion of main memory, not a file. <code>fd</code> will
 be set to <code>-1</code> and <code>offset</code> to <code>0</code>,
-since we are not mapping a file.</p>
-<p>We will then print the contents of <code>/proc/self/maps</code> which
-are the process’s virtual memory addresses. We will do this before and
-after the <code>mmap</code> call to see the difference.</p>
+since we are not mapping a file. We will then print the contents of
+<code>/proc/self/maps</code> which are the process’s virtual memory
+addresses. We will do this before and after the <code>mmap</code> call
+to see the difference.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;sys/mman.h&gt;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
@@ -256,9 +258,9 @@ it. Let’s see this in practice.</p>
 <p>To show this, we can watch two fields from
 <code>/proc/self/status</code>:</p>
 <ul>
-<li><code>VmSize</code> — total <strong>virtual</strong> address space
-of the process.</li>
-<li><code>VmRSS</code> — resident set size, i.e. the
+<li><code>VmSize</code>: total <strong>virtual</strong> address space of
+the process.</li>
+<li><code>VmRSS</code>: resident set size, i.e. the
 <strong>physical</strong> memory currently backing the process.</li>
 </ul>
 <p>The plan is:</p>
@@ -324,8 +326,8 @@ uses it does the kernel allocate physical pages.</p>
 <p><em>Conclusion: <code>mmap</code> reserves a virtual memory region
 for the process, but the mapping to physical pages happens lazily, only
 when the process accesses the memory.</em></p>
-<h3 id="when-and-why-malloc-does-use-mmap">When and why malloc does use
-mmap ?</h3>
+<h2 id="when-and-why-malloc-does-use-mmap">When and why malloc does use
+mmap ?</h2>
 <p>We mentioned earlier that <code>malloc</code> uses <code>mmap</code>
 under the hood for large allocations. Let’s see how this works in
 practice. We can watch this happen with <code>strace</code>. Our program
@@ -400,8 +402,8 @@ allocations because it allows the kernel to reclaim memory immediately
 when the allocation is freed, whereas small allocations are served from
 the heap and cannot be returned to the kernel until the program break is
 moved down.</em></p>
-<h3 id="what-happen-when-we-use-mmap-to-access-a-file">What happen when
-we use mmap to access a file?</h3>
+<h2 id="what-happen-when-we-use-mmap-to-access-a-file">What happen when
+we use mmap to access a file?</h2>
 <p>First, let’s see first what happens when we use <code>read()</code>
 to access a file. We will use <code>strace</code> to trace the system
 calls made by our program. We will then compare the system calls made
@@ -493,10 +495,10 @@ the file. I am not sure why this is the case.</p>
 virtual memory, either that address is mapped to a page in the page
 cache or it will trigger a page fault and the kernel will read the file
 into the page cache.</em></p>
-<h3
+<h2
 id="how-good-is-mmap-for-large-sequential-reads-compared-to-read">How
 good is <code>mmap</code> for large sequential reads compared to
-<code>read()</code>?</h3>
+<code>read()</code>?</h2>
 <p>We measured both approaches on files of increasing size on macOS. For
 each size, we open the file, walk through it once (one byte per page for
 <code>mmap</code>, 1 MiB chunks for <code>read</code>) and record the
@@ -562,7 +564,7 @@ which lets the kernel issue big sequential I/Os and amortize the
 per-call overhead.</p>
 <p><em>Conclusion: for a large sequential scan, <code>read()</code> is
 faster than <code>mmap()</code>.</em></p>
-<h3 id="conclusion">Conclusion</h3>
+<h2 id="conclusion">Conclusion</h2>
 <p>We saw what <code>mmap</code> does and how it works. We also
 investigated how <code>malloc</code> uses <code>mmap</code> for large
 allocations and how <code>mmap</code> can be used to access files. We

@@ -31,7 +31,7 @@ void *mmap(
 
 > The mmap() [system call](https://en.wikipedia.org/wiki/System_call) causes the pages starting at **addr** and continuing for at most **len** bytes to be mapped from the object described by **fd**, starting at byte offset **offset**.
 
-From previous experience, I know that `mmap` is used for example to read from a file in the same way we read memory i.e by going through virtual addresses[^virtual-memory]. 
+First, we can deduce that `mmap` stands for "memory mapping". One immediate benefit we can see is that `mmap` could be used to read from a file in the same way we read memory i.e by going through virtual addresses[^virtual-memory]. 
 
 Let's also look at somes values that `flags` can take:
 
@@ -41,7 +41,7 @@ Let's also look at somes values that `flags` can take:
 
 `MAP_ANON` essentialy is what enables using `mmap` to map to main memory.
 
-### How does the mapping happen?
+## How does the mapping happen?
 
 In `mmap`, the mapping happens in two steps: 
 
@@ -51,9 +51,7 @@ In `mmap`, the mapping happens in two steps:
 **1. Reserving a virtual memory region.**
 Let's understand the first point. A process holds a list of virtual memory regions. Each virtual memory region is described by a `struct vm_area_struct` in the kernel[^kernel]. *Reserving a virtual memory region* means that the kernel will create a new `struct vm_area_struct` and add it to the list of virtual memory regions of the process. Let's see this in practice.
 
-We will use `mmap` with `addr` set to `NULL`, which means that the kernel will choose the address for us. We will also use `MAP_ANONYMOUS` to indicate that we want to map a portion of main memory, not a file. `fd` will be set to `-1` and `offset` to `0`, since we are not mapping a file. 
-
-We will then print the contents of `/proc/self/maps` which are the process's virtual memory addresses. We will do this before and after the `mmap` call to see the difference.
+We will use `mmap` with `addr` set to `NULL`, which means that the kernel will choose the address for us. We will also use `MAP_ANONYMOUS` to indicate that we want to map a portion of main memory, not a file. `fd` will be set to `-1` and `offset` to `0`, since we are not mapping a file. We will then print the contents of `/proc/self/maps` which are the process's virtual memory addresses. We will do this before and after the `mmap` call to see the difference.
 
 
 ```c
@@ -148,8 +146,8 @@ Answering our question: We can see that  `mmap` gives us an address `0xffffb78f9
 
 To show this, we can watch two fields from `/proc/self/status`:
 
-- `VmSize` — total **virtual** address space of the process.
-- `VmRSS`  — resident set size, i.e. the **physical** memory currently backing the process.
+- `VmSize`: total **virtual** address space of the process.
+- `VmRSS`: resident set size, i.e. the **physical** memory currently backing the process.
 
 The plan is:
 
@@ -204,7 +202,7 @@ This is why on Linux you can `mmap` an amount of memory that is much larger than
 
 *Conclusion: `mmap` reserves a virtual memory region for the process, but the mapping to physical pages happens lazily, only when the process accesses the memory.*
 
-### When and why malloc does use mmap ?
+## When and why malloc does use mmap ?
 
 We mentioned earlier that `malloc` uses `mmap` under the hood for large allocations. Let's see how this works in practice. We can watch this happen with `strace`. Our program does one small `malloc(1 KiB)`, one large `malloc(1 MiB)`, and then frees both, printing markers to stderr between each step so they interleave with the syscall trace:
 ```c
@@ -270,7 +268,7 @@ Even though the 100 MiB is unused, glibc cannot call `brk` to shrink the heap be
 
 *Conclusion: `malloc` uses `mmap` for large allocations because it allows the kernel to reclaim memory immediately when the allocation is freed, whereas small allocations are served from the heap and cannot be returned to the kernel until the program break is moved down.*
 
-### What happen when we use mmap to access a file?
+## What happen when we use mmap to access a file?
 
 First, let's see first what happens when we use `read()` to access a file. We will use `strace` to trace the system calls made by our program. We will then compare the system calls made when we use `mmap` to access a file.
 
@@ -364,7 +362,7 @@ Note: This experiment was run macOS, as opposed to Linux through docker like the
 
 *Conclusion: When we read a `mmap`ed file through virtual memory, either that address is mapped to a page in the page cache or it will trigger a page fault and the kernel will read the file into the page cache.*
 
-### How good is `mmap` for large sequential reads compared to `read()`?
+## How good is `mmap` for large sequential reads compared to `read()`?
 
 
 We measured both approaches on files of increasing size on macOS. For each size, we open the file, walk through it once (one byte per page for `mmap`, 1 MiB chunks for `read`) and record the wall time. The full benchmark is in [mmap_file_bench.c](https://github.com/youssef62/mmap_experiments/blob/master/experiments/profile_macos/mmap_file_bench.c).
@@ -390,7 +388,7 @@ Results (seconds):
 
 *Conclusion: for a large sequential scan, `read()` is faster than `mmap()`.*
 
-### Conclusion
+## Conclusion
 
 We saw what `mmap` does and how it works. We also investigated how `malloc` uses `mmap` for large allocations and how `mmap` can be used to access files. We benchmarked `mmap` and `read()` for large sequential reads and found that `read()` is faster than `mmap()` for large files. The reason, as our last experiment showed, is that `mmap` pays one page fault per page while `read()` can copy a large chunk in a single syscall.
 
