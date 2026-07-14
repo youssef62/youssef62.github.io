@@ -228,4 +228,10 @@ img {
     left: 0.5rem;
     font-size: 14px;
   }
+
+  /* The button is out of the flow: keep it from landing on the first
+     paragraph by reserving room for it at the top of the page. */
+  body {
+    padding-top: 2.5rem;
+  }
 }
