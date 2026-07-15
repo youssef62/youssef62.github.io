@@ -119,11 +119,10 @@ object described by <strong>fd</strong>, starting at byte offset
 <strong>offset</strong>.</p>
 </blockquote>
 <p>First, we can deduce that <code>mmap</code> stands for “memory
-mapping”. One immediate benefit that we can see is that
-<code>mmap</code> could be used for example to read from a file in the
-same way we read memory i.e by going through virtual addresses<a
-href="#fn1" class="footnote-ref" id="fnref1"
-role="doc-noteref"><sup>1</sup></a>.</p>
+mapping”. One immediate benefit we can see is that <code>mmap</code>
+could be used to read from a file in the same way we read memory i.e by
+going through virtual addresses<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
 <p>Let’s also look at somes values that <code>flags</code> can take:</p>
 <ul>
 <li><p><code>MAP_ANON</code> Map anonymous memory not associated with
