@@ -2,11 +2,11 @@
 title: "Fast 1D Convolution in CUDA: Achieving #1 on LeetGPU"
 ---
 
-<a href="homepage.html" class="home-button">🏠 Home</a>
+<a href="index.html" class="home-button">🏠 Home</a>
 
 I have been learning CUDA for the past few months. Recently, I came across LeetGPU, a platform with many CUDA challenges. I spent a few weeks thinking about how to optimize a 1D convolution kernel. After a few weeks of experimenting, debugging, and tuning, I managed to reach the top of the leaderboard on the NVIDIA T4 GPU. 
 <center><figure>
-<img src="../assets/conv1d-cuda/leaderboard.png" alt="LeetGPU Leaderboard" style="width: 50%; max-width: 500;"> 
+<img src="assets/conv1d-cuda/leaderboard.png" alt="LeetGPU Leaderboard" style="width: 50%; max-width: 500;"> 
 </figure></center>
 In this post, I’ll walk you through how I approached optimizing the 1D convolution kernel, from the initial naive version to the final implementation. I’ll also cover some of the key CUDA concepts and performance tricks that helped along the way. You can find the code on my 
 <a href="https://github.com/youssef62/conv1d-cuda" style="text-decoration: none;">
@@ -93,7 +93,7 @@ cudaMemcpyToSymbol(cmem_mask, mask_data, sizeof(float) * mask_size);
 **2. Shared memory**  Shared memory is shared among all threads in a block. It is on-chip memory and is much faster than global memory (faster than L1 cache with proper access). We will use it to cache the needed input data and then have fast reads during the convolution computation. All threads in a block will collaborate and load the needed data from input into shared memory, in a **coalesced manner**. Altought a block is responsible for `THREADS_PER_BLOCK` output elements, it needs `THREADS_PER_BLOCK + mask_size - 1` input elements to compute them. See figure below for a visual representation of this :
 
 <figure style="text-align: center;">
-<img src="../assets/conv1d-cuda/smem_diagram.png" 
+<img src="assets/conv1d-cuda/smem_diagram.png" 
     alt="Shared Memory Diagram" 
     style="width: 80%; max-width: 700px;">
 <figcaption>A block responsible for region output[i:j] it needs to access input[i:j+mask_size]</figcaption>
@@ -184,7 +184,7 @@ We need to do more computation per element loaded from shared memory to reduce s
 Instead of loading entries from `input` multiple times, each thread will load the necessary values from shared memory into registers once and use them to compute two output elements. This approach will **halve the number of shared memory reads** and reduce bank conflicts.
 
 <center><figure>
-    <img src="../assets/conv1d-cuda/reg_blocking_diagram.png" 
+    <img src="assets/conv1d-cuda/reg_blocking_diagram.png" 
         alt="Register Blocking Diagram" 
         style="width: 80%; max-width: 700px;">
     <figcaption style="text-align: center;">The sliding window approach for register blocking with 2 outputs per thread. At each iteration, we reuse one input element from the registers and load a new one from smem</figcaption>

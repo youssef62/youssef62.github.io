@@ -31,7 +31,7 @@
 <header id="title-block-header">
 <h1 class="title">Master Theorem: An Intuition</h1>
 </header>
-<p><a href="homepage.html" class="home-button">🏠 Home</a></p>
+<p><a href="index.html" class="home-button">🏠 Home</a></p>
 <p>If you are taking a course in algorithms, you have probably
 encountered the Master Theorem. It is a tool that helps you compute the
 time complexity of a divide-and-conquer algorithm of the form :</p>
@@ -64,7 +64,7 @@ the theorem. But the intuition will also useful on its own, <em>to find
 the time complexity of algorithms that do not fit the form of the Master
 Theorem</em>. More on that later. First, let’s state the Master Theorem:
 <center>
-<img src="../assets/master-thm/master_thm_statement_box.png" alt="alt text" style="width: 80%;">
+<img src="assets/master-thm/master_thm_statement_box.png" alt="alt text" style="width: 80%;">
 </center>
 <p>This statement can be a bit intimidating at first. But let’s break it
 down.</p>
@@ -76,7 +76,7 @@ class="math inline">\(n^{\log_b a}\)</span>.</p></li>
 class="math inline">\(n^{\log_b a}\)</span>.</p></li>
 </ul>
 <center>
-<img src="../assets/master-thm/master-thm_statement_color.png" alt="alt text" style="width: 80%;">
+<img src="assets/master-thm/master-thm_statement_color.png" alt="alt text" style="width: 80%;">
 </center>
 <p>It is critical to understand what the quantity <span
 class="math inline">\(n^{\log_b a}\)</span> represents. To understand
@@ -85,7 +85,7 @@ computational tree. Each node in this tree represents a subproblem (a
 function call). This tree is represented in the figure below where <span
 class="math inline">\(a=2\)</span>.</p>
 <center>
-<img src="../assets/master-thm/rec_tree.png" alt="alt text" style="width: 70%;">
+<img src="assets/master-thm/rec_tree.png" alt="alt text" style="width: 70%;">
 </center>
 <p>The height of this tree is <span
 class="math inline">\(\log_b(n)\)</span> and each node has <span
@@ -201,7 +201,7 @@ done at each level is decreasing. Meaning that <em>intuitively</em> the
 work will concentrate at the root. So a good guess would be that <span
 class="math inline">\(T(n) = O(f(n)) = O(n^2)\)</span>.</p>
 <center>
-<img src="../assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;">
+<img src="assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;">
 </center>
 <p>Let’s prove this by induction. The base case is trivial. For the
 induction step, we assume that <span class="math inline">\(T(k) \leq c
@@ -223,7 +223,7 @@ concentrated at the leaves. A good guess would be that <span
 class="math inline">\(T(n) = O(n \log n)\)</span>. Which we also can
 prove by induction.</p>
 <center>
-<img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 60%;">
+<img src="assets/master-thm/same_level.png" alt="alt text" style="width: 60%;">
 </center>
 </div>
 <section id="footnotes" class="footnotes footnotes-end-of-document"

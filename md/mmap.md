@@ -6,7 +6,7 @@ pagetitle: "What is mmap?"
 
 # What is `mmap`?
 
-<a href="homepage.html" class="home-button">🏠 Home</a>
+<a href="index.html" class="home-button">🏠 Home</a>
 
 
 

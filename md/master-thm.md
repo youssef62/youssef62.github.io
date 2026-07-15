@@ -2,7 +2,7 @@
 title: "Master Theorem: An Intuition"
 ---
 
-<a href="homepage.html" class="home-button">🏠 Home</a>
+<a href="index.html" class="home-button">🏠 Home</a>
 
 If you are taking a course in algorithms, you have probably encountered the Master Theorem. It is a tool that helps you compute the time complexity of a divide-and-conquer algorithm of the form : 
 
@@ -18,7 +18,7 @@ where $\color{red}a$ and $\color{blue}{b}$ are constants, and $\color{green}f$ r
 You probably also remember the Master Theorem as a set of 3 rules that you need to either memorize or look up every time you need to use it. In this post, I will try to give you an intuition behind the Master Theorem. The intuition is not my own, I got it from Prof. Kapralov's lectures on algorithms. <br>
 It will help you understand and remember the theorem. But the intuition will also useful on its own, *to find the time complexity of algorithms that do not fit the form of the Master Theorem*. More on that later. 
 First, let's state the Master Theorem: 
-<center><img src="../assets/master-thm/master_thm_statement_box.png" alt="alt text" style="width: 80%;"></center>
+<center><img src="assets/master-thm/master_thm_statement_box.png" alt="alt text" style="width: 80%;"></center>
 
 This statement can be a bit intimidating at first. But let's break it down. 
 
@@ -26,12 +26,12 @@ This statement can be a bit intimidating at first. But let's break it down.
 
 * There's a quantity that comes up in each case: $n^{\log_b a}$. 
 
-<center><img src="../assets/master-thm/master-thm_statement_color.png" alt="alt text" style="width: 80%;"></center>
+<center><img src="assets/master-thm/master-thm_statement_color.png" alt="alt text" style="width: 80%;"></center>
 
 It is critical to understand what the quantity $n^{\log_b a}$ represents. 
 To understand it, let's start by computing the number of leaf node in the computational tree. Each node in this tree represents a subproblem (a function call). This tree is represented in the figure below where $a=2$. 
 
-<center><img src="../assets/master-thm/rec_tree.png" alt="alt text" style="width: 70%;"></center>
+<center><img src="assets/master-thm/rec_tree.png" alt="alt text" style="width: 70%;"></center>
 
 The height of this tree is $\log_b(n)$ and each node has $a$ children. So the number of leaves is $a^{\log_b(n)}$. Now if we massage this expression a bit, we get : 
 $$ \color{red}a\color{black}^{\log_b(n)} = \left( \color{red} b^{\log_b a} \color{black} \right)^{\log_b(n)} = \left( b^{\log_b(n)} \right)^{\log_b a} = n^{\log_b a}$$
@@ -102,7 +102,7 @@ This recurrence does not fit the form of the Master Theorem. However, we can sti
 
 The root of the tree takes $n^2$ time. Its children take $(\frac{3n}{4})^2$ and $(\frac{n}{4})^2$ each. So the second level of the tree takes $\frac{10n^2}{16}$ time. We can also check the third level. What we find is that the work done at each level is decreasing. Meaning that *intuitively* the work will concentrate at the root. So a good guess would be that $T(n) = O(f(n)) = O(n^2)$. 
 
-<center><img src="../assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;"></center>
+<center><img src="assets/master-thm/root_concentrated.png" alt="alt text" style="width: 70%;"></center>
 
 Let's prove this by induction. The base case is trivial. For the induction step, we assume that $T(k) \leq c k^2$ for all $k < n$. Then we have :
 $$T(n) = T(n/4) + T(3n/4) + n^2 \leq c \left( \frac{n}{4} \right)^2 + c \left( \frac{3n}{4} \right)^2 + n^2 = (1+\frac{9c}{16}) n^2 \leq c n^2$$
@@ -114,6 +114,6 @@ $$T(n) = T(n/4) + T(3n/4) + n$$
 This time, the root takes $n$ time, and its children take $\frac{3n}{4}$ and $\frac{n}{4}$ each. So the second level of the tree takes $n$ time. We can check that it will be the same for next levels. So the work is concentrated at the leaves. A good guess would be that $T(n) = O(n \log n)$. Which we also can prove by induction. 
 
 
-<center><img src="../assets/master-thm/same_level.png" alt="alt text" style="width: 60%;"></center>
+<center><img src="assets/master-thm/same_level.png" alt="alt text" style="width: 60%;"></center>
 
 [^1]: "smaller" or "greater" here are the asymptotic sense. 
