@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Python Shims with .pth files are amazing</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Python Shims with .pth files are amazing</h1>
+</header>
+<p><em>I am currently working on loading large language models fast. In
+this context, I needed to intercept part of a library’s internals
+without modifying its code. This got me looking into how Python’s
+<code>site</code> module and <code>.pth</code> files work, and how they
+can be used to hook into arbitrary code. In this post, I document what I
+learned.</em></p>
+<p><a href="/" class="home-button">🏠 Home</a></p>
+<p>We create a virtual environment:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> venv venv</span></code></pre></div>
+<p>Then check what’s in <code>site-packages</code>:</p>
+<pre><code>ls venv/lib/python3.14/site-packages
+pip                pip-25.3.dist-info</code></pre>
+<p>And find where <code>site-packages</code> lives:</p>
+<pre><code>venv/bin/python -c &#39;import site; print(site.getsitepackages()[0])&#39;
+/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages</code></pre>
+<h2 id="how-does-pythons-import-work">How does Python’s import
+work?</h2>
+<p>When Python starts, it imports a built-in <code>site</code>
+module:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;site&quot;</span> <span class="kw">in</span> sys.modules)</span></code></pre></div>
+<pre><code>&gt;&gt;&gt; True</code></pre>
+<p>Note that we can use Python’s <code>-S</code> flag to avoid importing
+<code>site</code>:</p>
+<pre><code>venv/bin/python -S -c &quot;import sys; print(&#39;site&#39; in sys.modules)&quot;
+False
+venv/bin/python  -c &quot;import sys; print(&#39;site&#39; in sys.modules)&quot;
+True</code></pre>
+<p>The role of <code>site</code> is to prepare the Python interpreter.
+It:</p>
+<ol type="1">
+<li><p>Adds <code>site-packages</code> to <code>sys.path</code>
+<code>sys.path</code> is a list of directories where Python looks for
+modules. <code>site-packages</code> is where third-party (not standard
+library) packages are installed.
+<code>[   # current directory (modules in our project).      '',      # standard library from a zip      '/opt/homebrew/Cellar/python@3.14/.../python314.zip',      # standard library      '/opt/homebrew/Cellar/python@3.14/.../lib/python3.14',      # compiled code (.so)      '/opt/homebrew/Cellar/python@3.14/.../lib/python3.14/lib-dynload',      # site-packages !!      '/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages'  ]</code>
+If we run the previous command with <code>-S</code> (without
+<code>site</code>) then we will not see the last line. Don’t trust me,
+run it!</p></li>
+<li><p>Processes <code>.pth</code> files in <code>site-packages</code>
+directories <code>.pth</code> files contain paths to directories that we
+want in <code>sys.path</code>. This can, for example, be used to import
+a library. If you have in <code>site-packages</code> a
+<code>mypackage-includer.pth</code> containing
+<code>/opt/mypackage/lib/python</code>, then this path will be added to
+<code>sys.path</code> and <code>import mypackage</code> will be
+possible. Why not install the package directly in
+<code>site-packages</code>? Good question, I am not sure about the
+answer, but I guess not everyone wants to use a package manager,
+especially in the early days. Nowadays, we can use these
+<code>.pth</code> files to inject some interesting code in our apps
+;)</p>
+<p>Experiment: I will create a package <code>mypackage</code> outside
+our <code>sys.path</code>. I will create it in the parent dir of the
+current project dir with
+<code>echo 'print("Hi from mymodule")' &gt; ../mymodule.py</code> Let’s
+try to import it:
+<code>venv/bin/python -c "import mymodule"  Traceback (most recent call last):  File "&lt;string&gt;", line 1, in &lt;module&gt;      import mymodule  ModuleNotFoundError: No module named 'mymodule'</code>
+Fails as expected. Now let’s put in <code>site-packages</code> a
+<code>.pth</code> that points to it. First, we create the
+<code>.pth</code> with the path of our parent <code>$(pwd)/..</code>.
+<code>echo "$(pwd)/.." &gt; venv/lib/python3.14/site-packages/mymodule-includer.pth</code>
+Now we can test again.
+<code>venv/bin/python -c "import mymodule"                Hi from mymodule</code>
+Amazing! This means we have at least a partially correct understanding
+of this. Note that <code>.pth</code> files can also contain code, we
+will explore this later.</p></li>
+<li><p>Imports <code>sitecustomize</code> from <code>sys.path</code>
+directories All <code>sitecustomize.py</code> files are here to let you
+customize your Python. At startup, Python will do
+<code>import sitecustomize</code> which loops through
+<code>sys.path</code> in order and imports the first occurrence of
+<code>sitecustomize</code> it finds. Let’s test this! Let’s create a
+<code>sitecustomize.py</code> in the current dir.
+<code>echo 'print("Hi from custom sitecustomize.py")' &gt; sitecustomize.py</code>
+Let’s launch Python code that just imports <code>sys</code> and that has
+the current dir as <code>sys.path</code>.
+<code>PYTHONPATH=$PWD venv/bin/python -c "import sys"  Hi from custom sitecustomize.py</code>
+Fantastic.</p></li>
+</ol>
+<h2 id="lets-have-fun-intercepting-print">Let’s have fun intercepting
+<code>print</code></h2>
+<p>Enough theory, let’s start living. We say that: - Python
+automatically imports a module <code>site</code> - <code>site</code>
+executes all the <code>.pth</code> files in <code>site-packages</code>.
+- <code>.pth</code> files can contain code.</p>
+<p>With these observations, we can cook up a way to intercept Python’s
+<code>print</code> function. For that we will create a fake print
+function in
+<code>venv/lib/python3.14/site-packages/my_print_hook.py</code>.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
+<p>Now let’s create a <code>.pth</code> file that will import this
+module.</p>
+<pre><code>echo &quot;import my_print_hook&quot; &gt; &quot;$SITE/my_print_hook.pth&quot;</code></pre>
+<p>Let’s test it!</p>
+<pre><code>venv/bin/python -c &quot;print(&#39;hello&#39;)&quot;
+[INTERCEPTED INSIDE MY PRINT: ] hello</code></pre>
+<p>Ouh la la, we have successfully intercepted the print function.</p>
+<p>Note that we don’t necessarily need to put
+<code>my_print_hook.py</code> in
+<code>venv/lib/python3.14/site-packages/</code> and can instead use
+<code>PYTHONPATH</code>.</p>
+<p>E.g., let’s change our local <code>my_print_hook.py</code>’s print
+to</p>
+<pre><code>def intercepted_print(*args, **kwargs):
+    _original_print(&quot;[INTERCEPTED INSIDE MY PRINT WITH PYTHONPATH: ]&quot;, *args, **kwargs)</code></pre>
+<p>And keep <code>site-packages</code>’s <code>my_print_hook.py</code>
+as is. Now let’s test it with <code>PYTHONPATH</code>:</p>
+<pre><code>PYTHONPATH=$PWD venv/bin/python -c &quot;print(&#39;Hi&#39;)&quot;
+[INTERCEPTED INSIDE MY PRINT WITH PYTHONPATH: ] Hi</code></pre>
+<p>Voilà, the <code>my_print_hook.pth</code> imports
+<code>my_print_hook</code> and, given we use
+<code>PYTHONPATH=$PWD</code>, the <code>my_print_hook.py</code> in the
+current dir is imported and not the one in
+<code>site-packages</code>.</p>
+<p>This is a cleaner technique; however, our program could spawn other
+processes that do not have the same <code>PYTHONPATH</code>, so putting
+<code>my_print_hook.py</code> in <code>site-packages</code> is more
+radical and will work for all processes.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>I got interested in this because, when working on loading large
+models, I was using a custom high-bandwidth program to load the model to
+<code>/dev/shm</code> (RAM) and then providing this path to the engine
+(sglang). I then wanted to overlap the staging to <code>/dev/shm</code>
+with the engine initialization, to hide the staging cost. For this I
+needed a barrier between the two phases: if the staging was not
+finished, the engine would wait. The issue is that this requires us to
+change sglang’s code to add a barrier, which is inconvenient. Using what
+we learned today, we can intercept <code>safetensors.safe_open</code>,
+add a barrier there that, when satisfied, will let the engine continue.
+This is a very powerful technique that can be used to modify the
+behavior of existing code without changing it.</p>
+</body>
+</html>
