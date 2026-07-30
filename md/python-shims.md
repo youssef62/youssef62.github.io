@@ -43,64 +43,62 @@ True
 
 The role of `site` is to prepare the Python interpreter. It:
 
-1. Adds `site-packages` to `sys.path`
-	`sys.path` is a list of directories where Python looks for modules. `site-packages` is where third-party (not standard library) packages are installed.
-	```
-	[	# current directory (modules in our project).
-		'',
-		# standard library from a zip
- 		'/opt/homebrew/Cellar/python@3.14/.../python314.zip',
-		# standard library
- 		'/opt/homebrew/Cellar/python@3.14/.../lib/python3.14',
-		# compiled code (.so)
- 		'/opt/homebrew/Cellar/python@3.14/.../lib/python3.14/lib-dynload',
-		# site-packages !!
- 		'/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages'
-	]
-	```
-	If we run the previous command with `-S` (without `site`) then we will not see the last line. Don't trust me, run it!
+**1. Adds `site-packages` to `sys.path`.** `sys.path` is a list of directories where Python looks for modules. `site-packages` is where third-party (not standard library) packages are installed.
+```
+[	# current directory (modules in our project).
+	'',
+	# standard library from a zip
+	'/opt/homebrew/Cellar/python@3.14/.../python314.zip',
+	# standard library
+	'/opt/homebrew/Cellar/python@3.14/.../lib/python3.14',
+	# compiled code (.so)
+	'/opt/homebrew/Cellar/python@3.14/.../lib/python3.14/lib-dynload',
+	# site-packages !!
+	'/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages'
+]
+```
+If we run the previous command with `-S` (without `site`) then we will not see the last line. Don't trust me, run it!
 
-2. Processes `.pth` files in `site-packages` directories
-	`.pth` files contain paths to directories that we want in `sys.path`. This can, for example, be used to import a library. If you have in `site-packages` a `mypackage-includer.pth` containing `/opt/mypackage/lib/python`, then this path will be added to `sys.path` and `import mypackage` will be possible. Why not install the package directly in `site-packages`? Good question, I am not sure about the answer, but I guess not everyone wants to use a package manager, especially in the early days. Nowadays, we can use these `.pth` files to inject some interesting code in our apps ;)
+**2. Processes `.pth` files in `site-packages` directories.** `.pth` files contain paths to directories that we want in `sys.path`. This can, for example, be used to import a library. If you have in `site-packages` a `mypackage-includer.pth` containing `/opt/mypackage/lib/python`, then this path will be added to `sys.path` and `import mypackage` will be possible. Why not install the package directly in `site-packages`? Good question, I am not sure about the answer, but I guess not everyone wants to use a package manager, especially in the early days. Nowadays, we can use these `.pth` files to inject some interesting code in our apps ;)
 
-	Experiment: I will create a package `mypackage` outside our `sys.path`. I will create it in the parent dir of the current project dir with
-	```
-	echo 'print("Hi from mymodule")' > ../mymodule.py
-	```
-	Let's try to import it:
-	```
-	venv/bin/python -c "import mymodule"
-	Traceback (most recent call last):
-  	File "<string>", line 1, in <module>
-    	import mymodule
-	ModuleNotFoundError: No module named 'mymodule'
-	```
-	Fails as expected. Now let's put in `site-packages` a `.pth` that points to it. First, we create the `.pth` with the path of our parent `$(pwd)/..`.
-	```
-	echo "$(pwd)/.." > venv/lib/python3.14/site-packages/mymodule-includer.pth
-	```
-	Now we can test again.
-	```
-	venv/bin/python -c "import mymodule"              
-	Hi from mymodule
-	```
-	Amazing! This means we have at least a partially correct understanding of this. Note that `.pth` files can also contain code, we will explore this later.
+Experiment: I will create a package `mypackage` outside our `sys.path`. I will create it in the parent dir of the current project dir with
+```
+echo 'print("Hi from mymodule")' > ../mymodule.py
+```
+Let's try to import it:
+```
+venv/bin/python -c "import mymodule"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import mymodule
+ModuleNotFoundError: No module named 'mymodule'
+```
+Fails as expected. Now let's put in `site-packages` a `.pth` that points to it. First, we create the `.pth` with the path of our parent `$(pwd)/..`.
+```
+echo "$(pwd)/.." > venv/lib/python3.14/site-packages/mymodule-includer.pth
+```
+Now we can test again.
+```
+venv/bin/python -c "import mymodule"              
+Hi from mymodule
+```
+Amazing! This means we have at least a partially correct understanding of this. Note that `.pth` files can also contain code, we will explore this later.
 
-3. Imports `sitecustomize` from `sys.path` directories
-	All `sitecustomize.py` files are here to let you customize your Python. At startup, Python will do `import sitecustomize` which loops through `sys.path` in order and imports the first occurrence of `sitecustomize` it finds. Let's test this! Let's create a `sitecustomize.py` in the current dir.
-	```
-	echo 'print("Hi from custom sitecustomize.py")' > sitecustomize.py
-	```
-	Let's launch Python code that just imports `sys` and that has the current dir as `sys.path`.
-	```
-	PYTHONPATH=$PWD venv/bin/python -c "import sys"
-	Hi from custom sitecustomize.py
-	``` 
-	Fantastic.
+**3. Imports `sitecustomize` from `sys.path` directories.** All `sitecustomize.py` files are here to let you customize your Python. At startup, Python will do `import sitecustomize` which loops through `sys.path` in order and imports the first occurrence of `sitecustomize` it finds. Let's test this! Let's create a `sitecustomize.py` in the current dir.
+```
+echo 'print("Hi from custom sitecustomize.py")' > sitecustomize.py
+```
+Let's launch Python code that just imports `sys` and that has the current dir as `sys.path`.
+```
+PYTHONPATH=$PWD venv/bin/python -c "import sys"
+Hi from custom sitecustomize.py
+``` 
+Fantastic.
 
 ## Let's have fun intercepting `print`
 
 Enough theory, let's start living. We say that:
+
 - Python automatically imports a module `site`
 - `site` executes all the `.pth` files in `site-packages`.
 - `.pth` files can contain code.

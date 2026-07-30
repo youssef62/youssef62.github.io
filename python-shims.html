@@ -125,23 +125,32 @@ venv/bin/python  -c &quot;import sys; print(&#39;site&#39; in sys.modules)&quot;
 True</code></pre>
 <p>The role of <code>site</code> is to prepare the Python interpreter.
 It:</p>
-<ol type="1">
-<li><p>Adds <code>site-packages</code> to <code>sys.path</code>
-<code>sys.path</code> is a list of directories where Python looks for
-modules. <code>site-packages</code> is where third-party (not standard
-library) packages are installed.
-<code>[   # current directory (modules in our project).      '',      # standard library from a zip      '/opt/homebrew/Cellar/python@3.14/.../python314.zip',      # standard library      '/opt/homebrew/Cellar/python@3.14/.../lib/python3.14',      # compiled code (.so)      '/opt/homebrew/Cellar/python@3.14/.../lib/python3.14/lib-dynload',      # site-packages !!      '/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages'  ]</code>
-If we run the previous command with <code>-S</code> (without
+<p><strong>1. Adds <code>site-packages</code> to
+<code>sys.path</code>.</strong> <code>sys.path</code> is a list of
+directories where Python looks for modules. <code>site-packages</code>
+is where third-party (not standard library) packages are installed.</p>
+<pre><code>[   # current directory (modules in our project).
+    &#39;&#39;,
+    # standard library from a zip
+    &#39;/opt/homebrew/Cellar/python@3.14/.../python314.zip&#39;,
+    # standard library
+    &#39;/opt/homebrew/Cellar/python@3.14/.../lib/python3.14&#39;,
+    # compiled code (.so)
+    &#39;/opt/homebrew/Cellar/python@3.14/.../lib/python3.14/lib-dynload&#39;,
+    # site-packages !!
+    &#39;/Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages&#39;
+]</code></pre>
+<p>If we run the previous command with <code>-S</code> (without
 <code>site</code>) then we will not see the last line. Don’t trust me,
-run it!</p></li>
-<li><p>Processes <code>.pth</code> files in <code>site-packages</code>
-directories <code>.pth</code> files contain paths to directories that we
-want in <code>sys.path</code>. This can, for example, be used to import
-a library. If you have in <code>site-packages</code> a
-<code>mypackage-includer.pth</code> containing
-<code>/opt/mypackage/lib/python</code>, then this path will be added to
-<code>sys.path</code> and <code>import mypackage</code> will be
-possible. Why not install the package directly in
+run it!</p>
+<p><strong>2. Processes <code>.pth</code> files in
+<code>site-packages</code> directories.</strong> <code>.pth</code> files
+contain paths to directories that we want in <code>sys.path</code>. This
+can, for example, be used to import a library. If you have in
+<code>site-packages</code> a <code>mypackage-includer.pth</code>
+containing <code>/opt/mypackage/lib/python</code>, then this path will
+be added to <code>sys.path</code> and <code>import mypackage</code> will
+be possible. Why not install the package directly in
 <code>site-packages</code>? Good question, I am not sure about the
 answer, but I guess not everyone wants to use a package manager,
 especially in the early days. Nowadays, we can use these
@@ -149,51 +158,60 @@ especially in the early days. Nowadays, we can use these
 ;)</p>
 <p>Experiment: I will create a package <code>mypackage</code> outside
 our <code>sys.path</code>. I will create it in the parent dir of the
-current project dir with
-<code>echo 'print("Hi from mymodule")' &gt; ../mymodule.py</code> Let’s
-try to import it:
-<code>venv/bin/python -c "import mymodule"  Traceback (most recent call last):  File "&lt;string&gt;", line 1, in &lt;module&gt;      import mymodule  ModuleNotFoundError: No module named 'mymodule'</code>
-Fails as expected. Now let’s put in <code>site-packages</code> a
+current project dir with</p>
+<pre><code>echo &#39;print(&quot;Hi from mymodule&quot;)&#39; &gt; ../mymodule.py</code></pre>
+<p>Let’s try to import it:</p>
+<pre><code>venv/bin/python -c &quot;import mymodule&quot;
+Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+    import mymodule
+ModuleNotFoundError: No module named &#39;mymodule&#39;</code></pre>
+<p>Fails as expected. Now let’s put in <code>site-packages</code> a
 <code>.pth</code> that points to it. First, we create the
-<code>.pth</code> with the path of our parent <code>$(pwd)/..</code>.
-<code>echo "$(pwd)/.." &gt; venv/lib/python3.14/site-packages/mymodule-includer.pth</code>
-Now we can test again.
-<code>venv/bin/python -c "import mymodule"                Hi from mymodule</code>
-Amazing! This means we have at least a partially correct understanding
-of this. Note that <code>.pth</code> files can also contain code, we
-will explore this later.</p></li>
-<li><p>Imports <code>sitecustomize</code> from <code>sys.path</code>
-directories All <code>sitecustomize.py</code> files are here to let you
-customize your Python. At startup, Python will do
-<code>import sitecustomize</code> which loops through
-<code>sys.path</code> in order and imports the first occurrence of
-<code>sitecustomize</code> it finds. Let’s test this! Let’s create a
-<code>sitecustomize.py</code> in the current dir.
-<code>echo 'print("Hi from custom sitecustomize.py")' &gt; sitecustomize.py</code>
-Let’s launch Python code that just imports <code>sys</code> and that has
-the current dir as <code>sys.path</code>.
-<code>PYTHONPATH=$PWD venv/bin/python -c "import sys"  Hi from custom sitecustomize.py</code>
-Fantastic.</p></li>
-</ol>
+<code>.pth</code> with the path of our parent
+<code>$(pwd)/..</code>.</p>
+<pre><code>echo &quot;$(pwd)/..&quot; &gt; venv/lib/python3.14/site-packages/mymodule-includer.pth</code></pre>
+<p>Now we can test again.</p>
+<pre><code>venv/bin/python -c &quot;import mymodule&quot;              
+Hi from mymodule</code></pre>
+<p>Amazing! This means we have at least a partially correct
+understanding of this. Note that <code>.pth</code> files can also
+contain code, we will explore this later.</p>
+<p><strong>3. Imports <code>sitecustomize</code> from
+<code>sys.path</code> directories.</strong> All
+<code>sitecustomize.py</code> files are here to let you customize your
+Python. At startup, Python will do <code>import sitecustomize</code>
+which loops through <code>sys.path</code> in order and imports the first
+occurrence of <code>sitecustomize</code> it finds. Let’s test this!
+Let’s create a <code>sitecustomize.py</code> in the current dir.</p>
+<pre><code>echo &#39;print(&quot;Hi from custom sitecustomize.py&quot;)&#39; &gt; sitecustomize.py</code></pre>
+<p>Let’s launch Python code that just imports <code>sys</code> and that
+has the current dir as <code>sys.path</code>.</p>
+<pre><code>PYTHONPATH=$PWD venv/bin/python -c &quot;import sys&quot;
+Hi from custom sitecustomize.py</code></pre>
+<p>Fantastic.</p>
 <h2 id="lets-have-fun-intercepting-print">Let’s have fun intercepting
 <code>print</code></h2>
-<p>Enough theory, let’s start living. We say that: - Python
-automatically imports a module <code>site</code> - <code>site</code>
-executes all the <code>.pth</code> files in <code>site-packages</code>.
-- <code>.pth</code> files can contain code.</p>
+<p>Enough theory, let’s start living. We say that:</p>
+<ul>
+<li>Python automatically imports a module <code>site</code></li>
+<li><code>site</code> executes all the <code>.pth</code> files in
+<code>site-packages</code>.</li>
+<li><code>.pth</code> files can contain code.</li>
+</ul>
 <p>With these observations, we can cook up a way to intercept Python’s
 <code>print</code> function. For that we will create a fake print
 function in
 <code>venv/lib/python3.14/site-packages/my_print_hook.py</code>.</p>
-<div class="sourceCode" id="cb7"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
 <p>Now let’s create a <code>.pth</code> file that will import this
 module.</p>
 <pre><code>echo &quot;import my_print_hook&quot; &gt; &quot;$SITE/my_print_hook.pth&quot;</code></pre>
