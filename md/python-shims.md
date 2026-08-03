@@ -1,8 +1,10 @@
 *I am currently working on loading large language models fast. In this context, I needed to intercept part of a library's internals without modifying its code. This got me looking into how Python's `site` module and `.pth` files work, and how they can be used to hook into arbitrary code. In this post, I document what I learned.*
 
 ---
-title: "Fun with Python Shims: Intercepting Programs Without Modifying Them"
+pagetitle: "Fun with Python Shims: Intercepting Programs Without Modifying Them"
 ---
+
+# Fun with Python Shims: Intercepting Programs Without Modifying Them
 
 <a href="/" class="home-button">🏠 Home</a>
 
