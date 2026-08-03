@@ -5,9 +5,9 @@ body {
     color: rgba(0, 0, 0, 0.881);
     background-color: rgb(255, 253, 253);
     
-    font-size: 12pt;
+    font-size: 13pt;
     font-weight: 300;
-    line-height: 1.2;
+    line-height: 1.4;
     
     max-width: 55em;
     margin: 0 auto;
@@ -54,7 +54,7 @@ a:hover {
 /* Code blocks (Pandoc generates these) */
 pre {
     font-family: monospace;
-    font-size: 0.8em;
+    font-size: 1em;
     text-align: left;
     padding: 0.5em 0 0.5em 1em;
     margin: 1em 0 1em 1em;

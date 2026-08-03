@@ -15,6 +15,7 @@ Original Work:
 
 Explorations:
 
+* [Intercepting Python Programs Without Modifying Them](python-shims.html) (Aug 2026)
 * [What is `mmap`?](mmap.html) (Jul 2026)
 * [Master Theorem: An Intuition](master-thm.html) (Jan 2025)
 <!-- * [Intuition behind some probability concepts](prob-intuition.html)   -->

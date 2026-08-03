@@ -4,7 +4,7 @@
 pagetitle: "Intercepting Python Programs Without Modifying Them"
 ---
 
-# Fun with Python Shims: Intercepting Programs Without Modifying Them
+# Intercepting Python Programs Without Modifying Them
 
 <a href="/" class="home-button">🏠 Home</a>
 
@@ -199,9 +199,7 @@ In this case, only Python processes that have or inherit `PYTHONPATH` set to the
 
 *What if we want all the processes to have the intercepted `print`?*
 
-We can put `my_print_hook.py` in `site-packages` and it will be imported by all processes.
-
-Let's try that: we'll move our local `my_print_hook.py` to `site-packages` and change it to print a different message.
+We can put `my_print_hook.py` in `site-packages` and it will be imported by all processes. Let's try that: we'll move our local `my_print_hook.py` to `site-packages` and change it to print a different message.
 
 ```python
 import builtins
@@ -218,7 +216,7 @@ Running it:
 
 ```python
 venv/bin/python -c "print('hello')" 
-[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello
+>>> [INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello
 ```
 
 Voilà, the `my_print_hook.pth` imports `my_print_hook` and, given that `site-packages` is in `sys.path`, the `my_print_hook.py` is imported and the `print` function is intercepted.

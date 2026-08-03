@@ -97,8 +97,8 @@ without modifying its code. This got me looking into how Python’s
 can be used to hook into arbitrary code. In this post, I document what I
 learned.</em></p>
 <h1
-id="fun-with-python-shims-intercepting-programs-without-modifying-them">Fun
-with Python Shims: Intercepting Programs Without Modifying Them</h1>
+id="intercepting-python-programs-without-modifying-them">Intercepting
+Python Programs Without Modifying Them</h1>
 <p><a href="/" class="home-button">🏠 Home</a></p>
 <!-- We create a virtual environment:
 
@@ -303,8 +303,8 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href=
 <p><em>What if we want all the processes to have the intercepted
 <code>print</code>?</em></p>
 <p>We can put <code>my_print_hook.py</code> in
-<code>site-packages</code> and it will be imported by all processes.</p>
-<p>Let’s try that: we’ll move our local <code>my_print_hook.py</code> to
+<code>site-packages</code> and it will be imported by all processes.
+Let’s try that: we’ll move our local <code>my_print_hook.py</code> to
 <code>site-packages</code> and change it to print a different
 message.</p>
 <div class="sourceCode" id="cb14"><pre
@@ -319,7 +319,7 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a h
 <p>Running it:</p>
 <div class="sourceCode" id="cb15"><pre
 class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>venv<span class="op">/</span><span class="bu">bin</span><span class="op">/</span>python <span class="op">-</span>c <span class="st">&quot;print(&#39;hello&#39;)&quot;</span> </span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello</span></code></pre></div>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> [INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello</span></code></pre></div>
 <p>Voilà, the <code>my_print_hook.pth</code> imports
 <code>my_print_hook</code> and, given that <code>site-packages</code> is
 in <code>sys.path</code>, the <code>my_print_hook.py</code> is imported
