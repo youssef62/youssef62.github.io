@@ -242,7 +242,7 @@ your Python. At startup, Python will do
 <div class="sourceCode" id="cb9"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;print(&quot;Hi from custom sitecustomize.py&quot;)&#39;</span> <span class="op">&gt;</span> sitecustomize.py</span></code></pre></div>
 <p>Let’s launch Python code that just imports <code>sys</code> and that
-has the current dir as <code>sys.path</code>.</p>
+has the current dir prepended to <code>sys.path</code>.</p>
 <div class="sourceCode" id="cb10"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span><span class="va">$PWD</span> <span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;import sys&quot;</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Hi</span> from custom sitecustomize.py</span></code></pre></div>

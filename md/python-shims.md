@@ -136,7 +136,7 @@ The role of `site` is to prepare the Python interpreter. It:
 	```bash
 	echo 'print("Hi from custom sitecustomize.py")' > sitecustomize.py
 	```
-	Let's launch Python code that just imports `sys` and that has the current dir as `sys.path`.
+	Let's launch Python code that just imports `sys` and that has the current dir prepended to `sys.path`.
 
 	```bash
 	PYTHONPATH=$PWD venv/bin/python -c "import sys"
