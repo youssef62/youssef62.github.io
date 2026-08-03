@@ -45,7 +45,7 @@ print("math" in sys.modules)
 print(sys.modules["math"])
 >>> False
 >>> True
->>> <module 'math' from '/opt/homebrew/Cellar/python@3.14/3.14.2_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/math.cpython-314-darwin.so'>
+>>> <module 'math' from '/opt/.../lib/python3.14/lib-dynload/math.cpython-314-darwin.so'>
 ```
 
 So we can see that after the import, the `math` module is in `sys.modules` and we can even see the path to its compiled `.so` file. 

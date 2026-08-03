@@ -146,7 +146,7 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a hr
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sys.modules[<span class="st">&quot;math&quot;</span>])</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="va">False</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="va">True</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="op">&lt;</span>module <span class="st">&#39;math&#39;</span> <span class="im">from</span> <span class="st">&#39;/opt/homebrew/Cellar/python@3.14/3.14.2_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/math.cpython-314-darwin.so&#39;</span><span class="op">&gt;</span></span></code></pre></div>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="op">&lt;</span>module <span class="st">&#39;math&#39;</span> <span class="im">from</span> <span class="st">&#39;/opt/.../lib/python3.14/lib-dynload/math.cpython-314-darwin.so&#39;</span><span class="op">&gt;</span></span></code></pre></div>
 <p>So we can see that after the import, the <code>math</code> module is
 in <code>sys.modules</code> and we can even see the path to its compiled
 <code>.so</code> file.</p>
