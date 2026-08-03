@@ -282,7 +282,8 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a h
 module.</p>
 <div class="sourceCode" id="cb12"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;import my_print_hook&quot;</span> <span class="op">&gt;</span> <span class="st">&quot;</span><span class="va">$SITE</span><span class="st">/my_print_hook.pth&quot;</span></span></code></pre></div>
-<p>where $SITE is the path to <code>site-packages</code>.</p>
+<p>where <code>$SITE</code> is the path to
+<code>site-packages</code>.</p>
 <p>Now, the <code>.pth</code> will try to import
 <code>my_print_hook</code> but it will not find it in
 <code>sys.path</code>. We can fix that with <code>PYTHONPATH</code>:

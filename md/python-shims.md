@@ -178,7 +178,7 @@ Now let's create a `.pth` file that will import this module.
 echo "import my_print_hook" > "$SITE/my_print_hook.pth"
 ```
 
-where $SITE is the path to `site-packages`.
+where `$SITE` is the path to `site-packages`.
 
 Now, the `.pth` will try to import `my_print_hook` but it will not find it in `sys.path`. We can fix that with `PYTHONPATH`: when we prefix a command with `PYTHONPATH=<path>`, Python will prepend `<path>` to `sys.path`. 
 
