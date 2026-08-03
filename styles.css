@@ -5,11 +5,11 @@ body {
     color: rgba(0, 0, 0, 0.881);
     background-color: rgb(255, 253, 253);
     
-    font-size: 13pt;
+    font-size: 12.5pt;
     font-weight: 300;
     line-height: 1.4;
     
-    max-width: 55em;
+    max-width: 50em;
     margin: 0 auto;
     padding: 0 1em;
     text-align: justify;
