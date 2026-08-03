@@ -4,8 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Fun with Python Shims: Intercepting Programs Without Modifying
-Them</title>
+  <title>Intercepting Python Programs Without Modifying Them</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -102,15 +101,18 @@ id="fun-with-python-shims-intercepting-programs-without-modifying-them">Fun
 with Python Shims: Intercepting Programs Without Modifying Them</h1>
 <p><a href="/" class="home-button">🏠 Home</a></p>
 <!-- We create a virtual environment:
+
 ```sh
 python3 -m venv venv
 ```
 Then check what's in `site-packages`:
+
 ```
 ls venv/lib/python3.14/site-packages
 pip                pip-25.3.dist-info
 ```
 And find where `site-packages` lives:
+
 ```
 venv/bin/python -c 'import site; print(site.getsitepackages()[0])'
 /Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages
@@ -209,18 +211,23 @@ our <code>sys.path</code>. I will create it in the parent dir of the
 current project dir with</p>
 <div class="sourceCode" id="cb5"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;print(&quot;Hi from mymodule&quot;)&#39;</span> <span class="op">&gt;</span> ../mymodule.py</span></code></pre></div>
-<p>Let’s try to import it:
-<code>bash  venv/bin/python -c "import mymodule"  &gt;&gt;&gt; Traceback (most recent call last):  &gt;&gt;&gt; File "&lt;string&gt;", line 1, in &lt;module&gt;  &gt;&gt;&gt;     import mymodule  &gt;&gt;&gt; ModuleNotFoundError: No module named 'mymodule'</code></p>
+<p>Let’s try to import it:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;import mymodule&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> Traceback <span class="kw">(</span><span class="ex">most</span> recent call last<span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> File <span class="st">&quot;&lt;string&gt;&quot;</span><span class="ex">,</span> line 1, in <span class="op">&lt;</span>module<span class="op">&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span>     import <span class="ex">mymodule</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ModuleNotFoundError: <span class="ex">No</span> module named <span class="st">&#39;mymodule&#39;</span></span></code></pre></div>
 <p>Fails as expected. Now let’s put a <code>.pth</code> file that points
 to it in <code>site-packages</code>. First, we create the
 <code>.pth</code> with the path of our parent
 <code>$(pwd)/..</code>.</p>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/..&quot;</span> <span class="op">&gt;</span> venv/lib/python3.14/site-packages/mymodule-includer.pth</span></code></pre></div>
-<p>Now we can test again.</p>
 <div class="sourceCode" id="cb7"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;import mymodule&quot;</span>              </span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Hi</span> from mymodule</span></code></pre></div>
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span><span class="st">/..&quot;</span> <span class="op">&gt;</span> venv/lib/python3.14/site-packages/mymodule-includer.pth</span></code></pre></div>
+<p>Now we can test again.</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;import mymodule&quot;</span>              </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Hi</span> from mymodule</span></code></pre></div>
 <p>Amazing! This means we have at least a partially correct
 understanding of this. Note that <code>.pth</code> files can also
 contain code, we will explore this later.</p></li>
@@ -231,12 +238,15 @@ your Python. At startup, Python will do
 <code>import sitecustomize</code> which loops through
 <code>sys.path</code> in order and imports the first occurrence of
 <code>sitecustomize</code> it finds. Let’s test this! Let’s create a
-<code>sitecustomize.py</code> in the current dir.
-<code>bash  echo 'print("Hi from custom sitecustomize.py")' &gt; sitecustomize.py</code>
-Let’s launch Python code that just imports <code>sys</code> and that has
-the current dir as <code>sys.path</code>.
-<code>bash  PYTHONPATH=$PWD venv/bin/python -c "import sys"  Hi from custom sitecustomize.py</code>
-Fantastic.</p></li>
+<code>sitecustomize.py</code> in the current dir.</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;print(&quot;Hi from custom sitecustomize.py&quot;)&#39;</span> <span class="op">&gt;</span> sitecustomize.py</span></code></pre></div>
+<p>Let’s launch Python code that just imports <code>sys</code> and that
+has the current dir as <code>sys.path</code>.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span><span class="va">$PWD</span> <span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;import sys&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Hi</span> from custom sitecustomize.py</span></code></pre></div>
+<p>Fantastic.</p></li>
 </ol>
 <h2 id="lets-have-fun-intercepting-print">Let’s have fun intercepting
 <code>print</code></h2>
@@ -258,20 +268,20 @@ file, and we will put that <code>.pth</code> file in
 our module and our function will intercept <code>print</code>.</p>
 <p>So here’s our <code>my_print_hook.py</code> module that will
 intercept <code>print</code>.</p>
-<div class="sourceCode" id="cb8"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
 <!-- For that we will create a fake print function in `venv/lib/python3.14/site-packages/my_print_hook.py`. -->
 <p>Now let’s create a <code>.pth</code> file that will import this
 module.</p>
-<div class="sourceCode" id="cb9"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;import my_print_hook&quot;</span> <span class="op">&gt;</span> <span class="st">&quot;</span><span class="va">$SITE</span><span class="st">/my_print_hook.pth&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;import my_print_hook&quot;</span> <span class="op">&gt;</span> <span class="st">&quot;</span><span class="va">$SITE</span><span class="st">/my_print_hook.pth&quot;</span></span></code></pre></div>
 <p>where $SITE is the path to <code>site-packages</code>.</p>
 <p>Now, the <code>.pth</code> will try to import
 <code>my_print_hook</code> but it will not find it in
@@ -280,12 +290,12 @@ when we prefix a command with <code>PYTHONPATH=&lt;path&gt;</code>,
 Python will prepend <code>&lt;path&gt;</code> to
 <code>sys.path</code>.</p>
 <p>Let’s test it!</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;print(&#39;hello&#39;)&quot;</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> hello</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> <span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;print(&#39;hello&#39;)&quot;</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="ex">[INTERCEPTED</span> INSIDE MY PRINT WITH PYTHONPATH: ] hello</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;print(&#39;hello&#39;)&quot;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> hello</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span><span class="va">$(</span><span class="bu">pwd</span><span class="va">)</span> <span class="ex">venv/bin/python</span> <span class="at">-c</span> <span class="st">&quot;print(&#39;hello&#39;)&quot;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="ex">[INTERCEPTED</span> INSIDE MY PRINT WITH PYTHONPATH: ] hello</span></code></pre></div>
 <p>Ouh la la, we have successfully intercepted the print function.</p>
 <p>In this case, only Python processes that have or inherit
 <code>PYTHONPATH</code> set to the current dir will have the intercepted
@@ -297,19 +307,19 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href=
 <p>Let’s try that: we’ll move our local <code>my_print_hook.py</code> to
 <code>site-packages</code> and change it to print a different
 message.</p>
-<div class="sourceCode" id="cb11"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>_original_print <span class="op">=</span> builtins.<span class="bu">print</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> intercepted_print(<span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    _original_print(<span class="st">&quot;[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ]&quot;</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>builtins.<span class="bu">print</span> <span class="op">=</span> intercepted_print</span></code></pre></div>
 <p>Running it:</p>
-<div class="sourceCode" id="cb12"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>venv<span class="op">/</span><span class="bu">bin</span><span class="op">/</span>python <span class="op">-</span>c <span class="st">&quot;print(&#39;hello&#39;)&quot;</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>venv<span class="op">/</span><span class="bu">bin</span><span class="op">/</span>python <span class="op">-</span>c <span class="st">&quot;print(&#39;hello&#39;)&quot;</span> </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>[INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello</span></code></pre></div>
 <p>Voilà, the <code>my_print_hook.pth</code> imports
 <code>my_print_hook</code> and, given that <code>site-packages</code> is
 in <code>sys.path</code>, the <code>my_print_hook.py</code> is imported

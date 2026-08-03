@@ -1,7 +1,7 @@
 *I am currently working on loading large language models fast. In this context, I needed to intercept part of a library's internals without modifying its code. This got me looking into how Python's `site` module and `.pth` files work, and how they can be used to hook into arbitrary code. In this post, I document what I learned.*
 
 ---
-pagetitle: "Fun with Python Shims: Intercepting Programs Without Modifying Them"
+pagetitle: "Intercepting Python Programs Without Modifying Them"
 ---
 
 # Fun with Python Shims: Intercepting Programs Without Modifying Them
@@ -10,15 +10,18 @@ pagetitle: "Fun with Python Shims: Intercepting Programs Without Modifying Them"
 
 
 <!-- We create a virtual environment:
+
 ```sh
 python3 -m venv venv
 ```
 Then check what's in `site-packages`:
+
 ```
 ls venv/lib/python3.14/site-packages
 pip                pip-25.3.dist-info
 ```
 And find where `site-packages` lives:
+
 ```
 venv/bin/python -c 'import site; print(site.getsitepackages()[0])'
 /Users/youssefboughizane/Documents/projects/shim/venv/lib/python3.14/site-packages
@@ -34,6 +37,7 @@ When a Python program imports a module, e.g. `import mymodule`, the following ha
 * Python looks for the module in `sys.path` directories. `sys.path` is a list of directories where Python looks for modules. If the module is found, it is imported and added to `sys.modules` as a module object. If not, an error is raised. 
 
 Example: 
+
 ```python 
 print("math" in sys.modules)
 import math
@@ -51,6 +55,7 @@ So we can see that after the import, the `math` module is in `sys.modules` and w
 Now that we know what `sys.modules` and `sys.path` are, we will be able to understand why Python does the things it does before the first import.
 
 When Python starts, it imports a built-in `site` module:
+
 ```python
 import sys
 print("site" in sys.modules)
@@ -58,6 +63,7 @@ print("site" in sys.modules)
 ```
 
 Note that we can use Python's `-S` flag to avoid importing `site`:
+
 ```bash
 venv/bin/python -S -c "import sys; print('site' in sys.modules)"
 >>> False
@@ -99,6 +105,7 @@ The role of `site` is to prepare the Python interpreter. It:
 	```
 
 	Let's try to import it:
+
 	```bash
 	venv/bin/python -c "import mymodule"
 	>>> Traceback (most recent call last):
@@ -125,10 +132,12 @@ The role of `site` is to prepare the Python interpreter. It:
 3. **Imports `sitecustomize` from `sys.path` directories.** 
 
 	The `sitecustomize.py` file is here to let you customize your Python. At startup, Python will do `import sitecustomize` which loops through `sys.path` in order and imports the first occurrence of `sitecustomize` it finds. Let's test this! Let's create a `sitecustomize.py` in the current dir.
+
 	```bash
 	echo 'print("Hi from custom sitecustomize.py")' > sitecustomize.py
 	```
 	Let's launch Python code that just imports `sys` and that has the current dir as `sys.path`.
+
 	```bash
 	PYTHONPATH=$PWD venv/bin/python -c "import sys"
 	Hi from custom sitecustomize.py
@@ -148,6 +157,7 @@ Enough theory, let's start living. We saw that:
 With these observations, we can cook up a way to intercept Python's `print` function. We will create a function that intercepts `print`, we will import its module in a `.pth` file, and we will put that `.pth` file in `site-packages`. This way, when Python starts, it will import our module and our function will intercept `print`.
 
 So here's our `my_print_hook.py` module that will intercept `print`.
+
 ```python
 import builtins
 
@@ -205,6 +215,7 @@ builtins.print = intercepted_print
 ```
 
 Running it: 
+
 ```python
 venv/bin/python -c "print('hello')" 
 [INTERCEPTED INSIDE MY PRINT WITH SITEPACKAGES: ] hello
