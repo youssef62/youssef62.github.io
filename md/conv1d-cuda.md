@@ -324,7 +324,7 @@ micro_opt : 0.868636 ms, 4713.14 GFLOPS
 I also tried vectorizing the kernel using `float4` types, but it didn't improve performance. I don't know the reason for that. The code is on my github. If you have any insights, please let me know. 
 
 ## Conclusion 
-Shared memory does not always improve performance. In these cases, profiling is key to understand the bottlenecks. In memory-bound kernels, increases the computation per memory access is the way to go. 
+Shared memory does not always improve performance. In these cases, profiling is key to understand the bottlenecks. In memory-bound kernels, increasing the computation per memory access is the way to go. 
 
 
 

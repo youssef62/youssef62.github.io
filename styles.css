@@ -21,7 +21,7 @@ body {
 
 /* Typography */
 h1 {
-    font-size: 275%;
+    font-size: 225%;
     font-weight: 400;
     text-align: left;
     margin-top: 1.5em;
@@ -218,7 +218,7 @@ img {
 
 /* On pages with a title block, drop the button down to the title's level. */
 #title-block-header ~ p .home-button {
-  top: 5rem;
+  top: 3.7rem;
 }
 
 @media (max-width: 1200px) {
