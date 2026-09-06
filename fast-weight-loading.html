@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Fast LLM weights loading from Lustre datastores</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Fast LLM weights loading from Lustre datastores</h1>
+</header>
+<p><a href="/" class="home-button">🏠 Home</a></p>
+<center>
+<img src="assets/fast-weight-loading/epfl-ai-center-logo.png" alt="EPFL AI Center" style="height: 32px;">
+   
+<img src="assets/fast-weight-loading/swiss-ai-logo.png" alt="Swiss AI Initiative" style="height: 32px;">
+   
+<img src="assets/fast-weight-loading/easl-logo.png" alt="ETH EASL" style="height: 32px;">
+</center>
+<p><em>This work was conducted as a summer internship at the EPFL AI
+Center, with supervision from Xiaozhe Yao (EASL Lab, Systems Group, ETH
+Zurich).</em></p>
+<p>Cold start times for LLMs can be significant, slowing down research
+and development and wasting resources. Inference engines like vLLM or
+SGLang need to go through many steps before they can serve requests.
+This includes: importing dependencies, loading the model weights from
+remote storage to GPU memory, capturing CUDA graphs, compiling JIT
+kernels, and initializing NCCL communication. In the case of the SwissAI
+serving platform, we observed that most of the cold start time is spent
+loading weights from a Lustre datastore to the GPU.</p>
+<p>In this post, I’ll focus on weight loading from Lustre datastores.
+I’ll start by a per step breakdown, showing that the weight-loading step
+is the bottleneck. I will then benchmark the default loader and show
+that its use of <code>mmap</code> is the cause. Then I’ll show how we
+could reduce the weight-loading time from ~400s to ~10s. The ideas are
+packaged in a small wrapper called <a
+href="https://github.com/eth-easl/servekit">servekit</a>.</p>
+<h2 id="i.-time-breakdown">I. Time Breakdown</h2>
+<p>Let’s first map the cold start steps to their wall-clock time to
+identify the bottlenecks. We can do this by parsing the logs printed by
+the SGLang server during the cold start phase. I added the log parser to
+<code>servekit</code> as a CLI command:
+<code>servekit profile</code>.</p>
+<p>For this experiment, we use <code>Llama-3.1-70B-Instruct</code>
+served with SGLang v0.5.10 (image <code>lmsysorg/sglang:v0.5.10</code>)
+with tensor-parallel size 4 on a single Bristen cluster node, with
+weights loaded with the default sglang model loader. SML keeps models in
+<code>capstor/store</code>, which is a <a
+href="https://www.lustre.org/">Lustre</a> file system.</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/time_breakdown.png" alt="Stacked bar of cold start phase durations, dominated by weight_loading at 72% of the 629.79s total" width="85%">
+</figure>
+</center>
+<p><em>These breakdowns are highly variable: they depend on
+<code>capstor</code> contention, per-node differences, and other
+factors. <a
+href="https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">This
+document</a> compiles 3 runs of the baseline breakdown on different days
+with per-phase statistics (mean, stddev, min, max).</em></p>
+<p>As we can see, loading weights from persistent storage
+(<code>capstor/store</code>) is by far the most time-consuming step,
+with <strong>72%</strong> of the total cold start time. It is followed
+by CUDA graphs capture (<code>piecewise_cuda_graph_capture</code> +
+<code>cuda_graph_capture</code>) which is <strong>17%</strong>. The
+other steps account for around <strong>11%</strong> of the total cold
+start time and are mostly JIT compilation and Python package
+imports.</p>
+<h2 id="ii.-weight-loading">II. Weight Loading</h2>
+<p>Weight loading is clearly the bottleneck. <strong>453.74</strong>
+seconds for a 70B (141 GB) model is a lot: that is only <strong>0.29
+GiB/s</strong>. <a href="https://docs.cscs.ch/alps/storage/">Capstor’s
+aggregate theoretical bandwidth</a> (across all users and jobs) is a
+whopping <strong>1.19 TB/s</strong>, and we are connected to it with <a
+href="https://docs.cscs.ch/alps/hardware/#alps-high-speed-network">4 HPE
+Cray Slingshot-11 NICs</a> with a combined bandwidth of <strong>4 x
+23.28 GiB/s</strong>, so that NIC bandwidth should be our bottleneck. We
+should be able to do much better than <strong>0.29 GiB/s</strong>.</p>
+<p>So let’s try to understand:</p>
+<p><em>Why is the default weight loader so slow in our setup?</em></p>
+<h3 id="the-default-weight-loader-and-mmap">1. The default weight loader
+and mmap</h3>
+<p>The default SGLang loader uses <code>mmap</code> to load the weight
+files.</p>
+<p>But what is <code>mmap</code>? (I wrote a longer explanation of how
+<code>mmap</code> works <a href="mmap.html">here</a>.) <code>mmap</code>
+is a system call that maps a virtual memory region to a file. That
+memory region will not be mapped to a physical memory region until it is
+accessed a first time. When a <code>mmap</code>ed page is accessed for
+the first time, the kernel will realize that the virtual page does not
+have a corresponding physical page but is <code>mmap</code>ed to a file.
+So it will load the corresponding page from disk to the page cache (RAM)
+and then associate the virtual page with the page cache page. This is
+called a <strong>major page fault</strong>. On subsequent access, the
+virtual page is already mapped to a physical page in the page cache and
+no disk access is needed. This is called a <strong>minor page
+fault</strong>. <a href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a></p>
+<p>Concretely, in our Llama example, the <code>DefaultModelLoader</code>
+calls methods like
+<code>multi_thread_safetensors_weights_iterator</code>, which return an
+iterator over pairs (<code>tensor_name</code>,
+<code>tensor_weights</code>) where <code>tensor_weights</code> is an
+<code>mmap</code>’ed tensor. This iterator is passed to
+<code>LlamaForCausalLM</code>, which passes each parameter (like
+<code>ColumnParallelLinear</code>) its tensor weights. The parameter
+will then get a view of its needed weights according to its rank
+(<code>tp_rank</code> in the case of <code>ColumnParallelLinear</code>)
+and will then initiate a host (CPU) to device (GPU) copy of the
+weights.</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/weight-loading.png" alt="Weight loading: mmap to shard to GPU" width="50%">
+</figure>
+</center>
+<p>My hypothesis is that this triggers a <strong>major page
+fault</strong> for each page touched, which gets loaded from Lustre
+going through the network to the page cache and then copied to GPU. This
+would be a very slow process, especially for large models with many
+tensors spread over many pages. <a href="#fn2" class="footnote-ref"
+id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>To check this, we run the exact same experiment with SGLang’s
+<code>--weight-loader-disable-mmap</code>, which skips <code>mmap</code>
+entirely.</p>
+<p>We get <strong>45.7s</strong> for weight loading, which is
+<strong>9.9x faster</strong> than the default loader and corresponds to
+<strong>2.8GiB/s</strong>.</p>
+<blockquote>
+<p><strong>Lesson.</strong> For weight loading using an HDD-backed
+Lustre file system, using <code>mmap</code> is a bad idea. The simple
+<code>--weight-loader-disable-mmap</code> flag is a huge
+improvement.</p>
+</blockquote>
+<p>This still leaves another possible explanation: maybe it’s not
+<code>mmap</code> itself but the many small host-to-device copies it
+causes. Let’s try another one-flag method that does not use
+<code>mmap</code>: <code>fastsafetensors</code> <a href="#fn3"
+class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>
+(<code>--load-format fastsafetensors</code>) partitions files across TP
+ranks; each TP process reads a file with <code>pread</code> and then
+exchanges the weights with other TP ranks using NCCL communication.
+<em>Once all weights are on each GPU, tensors are parsed one by one
+directly in GPU memory</em>. This eliminates the need for small tensor
+copies from host to device. If the small copies were the real
+bottleneck, this should beat
+<code>--weight-loader-disable-mmap</code>.</p>
+<p>We get <strong>59.1s</strong> for weight loading, which is
+<strong>7.7x faster</strong> than the default loader but worse than
+<code>--weight-loader-disable-mmap</code>. This confirms again that the
+bottleneck was <code>mmap</code> and not the small tensor copies from
+host to device.</p>
+<p>This is a huge improvement and shows that <code>mmap</code> is not
+suitable for weight loading on Lustre file systems. However,
+<strong>2.8GiB/s</strong> is still far from the theoretical maximum of
+<strong>4x23.28 GiB/s</strong>. Let’s see if we can do better.</p>
+<h3 id="understanding-the-lustre-data-storage">2. Understanding the
+lustre data storage</h3>
+<p>Let’s set SGLang aside for a moment and ask a simpler question:</p>
+<p><em>Irrespective of SGLang, how fast can we load files from
+Lustre?</em></p>
+<p><strong>Across OST parallelism.</strong> Lustre is a distributed file
+system that saves files across different <em>Object Storage Targets
+(OSTs)</em>. Each OST is a storage volume that can be accessed
+independently. To increase the read bandwidth, we need to distribute the
+model weights across multiple OSTs so we can benefit from parallelism
+across OSTs. In our case, we will have each <code>.safetensors</code>
+file in a different OST. For models like
+<code>Llama-3.1-70B-Instruct</code>, there are 30
+<code>.safetensors</code> files.</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/lustre.png" alt="Lustre data storage" width="50%">
+</figure>
+</center>
+<p>However, single OSTs also benefit from having many requests in
+flight.</p>
+<p><strong>Within OST parallelism.</strong> Even within a single OST, we
+can increase the read bandwidth by having multiple processes reading
+from the same OST in parallel. This is because each process can issue
+its own I/O requests, and the OST can handle these requests
+concurrently.</p>
+<p><em>How many parallel readers does a single OST need to reach its
+full read bandwidth?</em></p>
+<p>To answer this, we will experiment with <code>dd iflag=direct</code>.
+This command lets us read files from disk without going through the page
+cache. We can use it as follows:
+<code>dd iflag=direct if=input.bin of=output.bin bs=16M</code>, where
+<code>bs=16M</code> is the block size, i.e. the amount of data read from
+disk in one request. In our experiment, we use <code>bs=16M</code> and
+read to <code>/dev/null</code> to measure the read speed. We study the
+effect of the number of parallel <code>dd</code> processes on the read
+speed.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">per</span><span class="op">=</span><span class="va">$((</span> <span class="dv">256</span> <span class="op">/</span> <span class="va">nprocess</span> <span class="va">))</span>           </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">t0</span><span class="op">=</span><span class="va">$(</span><span class="fu">date</span> +%s.%N<span class="va">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="kw">((</span><span class="va">i</span><span class="op">=</span><span class="dv">0</span><span class="kw">;</span><span class="va">i</span><span class="op">&lt;</span><span class="va">nprocess</span><span class="kw">;</span><span class="va">i</span><span class="op">++</span><span class="kw">));</span> <span class="cf">do</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dd</span> if=<span class="st">&quot;</span><span class="va">${SICK}</span><span class="st">&quot;</span> of=/dev/null bs=16M skip=<span class="va">$((i</span><span class="op">*</span><span class="va">per))</span> count=<span class="va">$per</span> iflag=direct status=none <span class="kw">&amp;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">done</span></span></code></pre></div>
+<p>We measure this on a single-striped 4.6 GB shard, reading a 4 GiB
+window of it (<code>bs=16M</code>, <code>O_DIRECT</code>, to
+<code>/dev/null</code>) while sweeping the number of parallel
+<code>dd</code> processes over disjoint, contiguous byte ranges of the
+same file. Each point is the median of 3 runs; bars span min to max:</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/ost_queue_depth.png" alt="OST read throughput keeps scaling with the number of parallel readers" width="40%">
+</figure>
+</center>
+<p>Throughput scales close to linearly with reader count up to 8, then
+keeps climbing sublinearly: 64 readers reach <strong>6.7 GB/s</strong>,
+an <strong>18x</strong> speedup over a single reader, and the curve has
+still not flattened. With many processes, we are able to keep many RPCs
+in flight, improving the bandwidth.</p>
+<blockquote>
+<p><strong>Lesson.</strong> To maximize bandwidth on Lustre storage with
+<code>O_DIRECT</code> reads (no page cache), we need parallelism both
+across OSTs and within a single OST.</p>
+</blockquote>
+<p>Equipped with this knowledge, we try the following: * Load in
+parallel (60 processes per file, which is maybe too much) from Lustre to
+<code>/dev/shm</code> (RAM), and then use SGLang’s default loader from
+<code>/dev/shm</code> to GPU. The staging takes <code>7s</code>, which
+is more than <strong>18 GiB/s</strong>, already much better than
+everything we have seen before. The weight loading takes
+<code>20s</code>, which is <code>&gt; 6 GiB/s</code>. Overall, this is a
+<strong>16x speedup</strong> over the default loader.</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/parallel-reads-lustre.png" alt="Parallel processes read file chunks from different OSTs on Lustre into /dev/shm, which SGLang then reads from" width="70%">
+</figure>
+</center>
+<ul>
+<li><p>This idea is possible because each node in both our clusters
+(Bristen and Clariden) has more RAM than GPU RAM. This means a node’s
+specific shard of weights can always be stored in RAM if we preshard the
+weights across nodes. This is what we do next. We use
+<code>--load-format sharded_state</code>, which lets us save our weights
+by their TP rank. One added benefit is that our weights are now
+contiguous for each rank, which speeds up our H2D reads (see
+below).</p></li>
+<li><p>Additionally, we can overlap the staging with the SGLang server
+launch. This is possible because the first steps
+(<code>process_startup</code>, <code>tp_worker_spawn</code>,
+<code>torch_distributed_init</code>) do not need the weights. We can
+start staging to <code>/dev/shm</code> while the server is still in
+<code>process_startup</code>. This is what I report below as
+<strong>/dev/shm staging + presharded + overlap</strong>.</p></li>
+<li><p>Staging to <code>/dev/shm</code> is better than warming up the
+page cache for models that don’t fit in a single node. For these, to
+warm all the weights a rank needs, we would need to fill the page cache
+with all weights of the model which don’t fit in the RAM.</p></li>
+<li><p>Staging to <code>/dev/shm</code> is different from using
+<code>--weight-loader-disable-mmap</code> in two ways.</p>
+<ol type="1">
+<li>Scaling: With <code>--weight-loader-disable-mmap</code>, each rank
+still reads the complete model weights: <strong>although it discards
+most of it and keeps only its shard, it still reads all of it.</strong>
+This means the total size of weights loaded increases
+<strong>linearly</strong> with the node count. In our method, it remains
+constant.</li>
+<li>Implementation: the standard
+<code>--weight-loader-disable-mmap</code> has 8 threads by default, each
+running a <code>pread</code> on a file. If our files are big, this will
+overflow RAM.</li>
+</ol></li>
+</ul>
+<p><em>Weight loading experiments (s), Bristen</em></p>
+<table>
+<thead>
+<tr>
+<th>config</th>
+<th>weight_loading (s)</th>
+<th>speedup</th>
+<th>total cold start (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default loader</td>
+<td>453.7</td>
+<td>1.0×</td>
+<td>629.8</td>
+</tr>
+<tr>
+<td>nommap</td>
+<td>45.7</td>
+<td>9.9×</td>
+<td>214.7</td>
+</tr>
+<tr>
+<td>fastsafetensors</td>
+<td>59.1</td>
+<td>7.7×</td>
+<td>230.0</td>
+</tr>
+<tr>
+<td>/dev/shm staging + mmap</td>
+<td>20.1 + 7.7 (stage)</td>
+<td>16.3×</td>
+<td>194.7</td>
+</tr>
+<tr>
+<td>/dev/shm + TP-presharded</td>
+<td>8.8 + 7.4 (stage)</td>
+<td>28.0×</td>
+<td>170.8</td>
+</tr>
+<tr>
+<td>/dev/shm staging + presharded + overlap</td>
+<td>9.7</td>
+<td>47.0×</td>
+<td>179.0</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>To avoid corrupting our results with any kind of caching, we run the
+methods in <strong>reverse order</strong> of expected speed and on
+different nodes, meaning <code>/dev/shm + presharded + overlap</code>
+ran before the default loader experiment.</li>
+<li>Similarly to the previous section, these results are highly
+variable, so we provide 3 runs of each experiment (conducted on
+different days) in <a
+href="https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">this
+document</a> with statistics (mean, stddev, min, max).</li>
+</ul>
+<p>Here’s the current breakdown of the cold start of our best method,
+<strong>/dev/shm staging + presharded + overlap</strong>. The weight
+loading is not the bottleneck anymore, the cuda graph capture is.</p>
+<center>
+<figure>
+<img src="assets/fast-weight-loading/overlap_breakdown.png" alt="Cold start phase breakdown for the /dev/shm staging + presharded + overlap arm, with the staging shown as a separate bar underneath that finishes while the engine is still in process_startup" width="85%">
+</figure>
+</center>
+<blockquote>
+<p>⚠️ <strong>Warning.</strong> We notice that, in general,
+<code>--cpus-per-task</code> can have a large impact on weight loading
+speed. The experiments above were all run with
+<code>--cpus-per-task=128</code>, i.e. on a full node. Here are
+<strong>–weight-loader-disable-mmap</strong> and the <strong>/dev/shm
+staging + presharded + overlap</strong> swept over the CPU budget:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>CPUs</th>
+<th><code>nommap</code> weight_loading (s)</th>
+<th><code>nommap</code> total (s)</th>
+<th>overlap stage + weight_loading (s)</th>
+<th>overlap total (s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>192.2</td>
+<td>373.1</td>
+<td>29.2 (stage) + 12.2</td>
+<td>227.9</td>
+</tr>
+<tr>
+<td>32</td>
+<td>189.6</td>
+<td>376.9</td>
+<td>34.1 (stage) + 11.2</td>
+<td>222.2</td>
+</tr>
+<tr>
+<td>64</td>
+<td>102.9</td>
+<td>292.9</td>
+<td>21.5 (stage) + 11.2</td>
+<td>191.0</td>
+</tr>
+<tr>
+<td>128</td>
+<td>48.9</td>
+<td>216.6</td>
+<td>15.2 (stage) + 9.3</td>
+<td>184.2</td>
+</tr>
+</tbody>
+</table>
+<p>Both are sensitive to CPU budget.
+<code>--weight-loader-disable-mmap</code>’s weight loading time scales
+almost <strong>linearly</strong> with number of cpus. In this case, it’s
+important to use a full node. Our technique, is affected by CPU budget,
+but not significantly.</p>
+</blockquote>
+<h3 id="fast-weight-loading-with-servekit">3. Fast weight loading with
+servekit</h3>
+<p>I packaged the above ideas into a small wrapper called
+<code>servekit</code> that can be used to launch SGLang servers with
+fast cold starts. It is not a new serving engine: it simply stages and
+launches SGLang with the optimizations described above. Currently,
+<code>servekit</code> implements fast weight loading and JIT kernel
+caching (the latter is outside the scope of this post).</p>
+<p><a
+href="https://github.com/eth-easl/servekit"><code>servekit</code></a>
+has a main command, <code>servekit launch</code>, which takes a normal
+SGLang command as an argument and launches it with optimizations.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">servekit</span> launch <span class="at">--servekit-artifact-path</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span> <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--</span> python <span class="at">-m</span> sglang.launch_server <span class="at">--model-path</span> <span class="op">&lt;</span>model<span class="op">&gt;</span> --tensor-parallel-size 4 ...</span></code></pre></div>
+<p><code>servekit</code> also offers several utilities, such as
+<code>servekit profile</code>, <code>servekit bench</code> and
+<code>servekit verify</code>, to profile a cold start, benchmark a
+running server, and verify that the server produces the same numbers as
+a trusted reference. You can find documentation for these commands in
+the <a
+href="https://github.com/eth-easl/servekit/blob/main/README.md">servekit
+README</a>.</p>
+<p><strong>Comprehensive results</strong></p>
+<p>We evaluate <code>servekit</code> against the default loader,
+<code>--weight-loader-disable-mmap</code> and
+<code>--load-format fastsafetensors</code> on multiple models.</p>
+<p><em>Config</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Apertus-8B-Instruct-2509</th>
+<th>Llama-3.1-70B-Instruct</th>
+<th>GLM-4.7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>size</td>
+<td>16 GB</td>
+<td>141 GB</td>
+<td>717 GB</td>
+</tr>
+<tr>
+<td>parallelism</td>
+<td>TP4</td>
+<td>TP4</td>
+<td>TP4-PP4</td>
+</tr>
+</tbody>
+</table>
+<p>This sweep uses SGLang v0.5.16 (image
+<code>lmsysorg/sglang:v0.5.16</code>).</p>
+<p><em>Weight loading time (s) on Bristen</em></p>
+<table>
+<thead>
+<tr>
+<th>Loader</th>
+<th>Apertus-8B-Instruct-2509</th>
+<th>Llama-3.1-70B-Instruct</th>
+<th>GLM-4.7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default loader (mmap)</td>
+<td>78.0</td>
+<td>737.0</td>
+<td>827.9</td>
+</tr>
+<tr>
+<td><code>--weight-loader-disable-mmap</code></td>
+<td>9.5</td>
+<td>46.0</td>
+<td>294.9 (num_threads=4)</td>
+</tr>
+<tr>
+<td><code>--load-format fastsafetensors</code></td>
+<td>17.9</td>
+<td>61.3</td>
+<td>143.8</td>
+</tr>
+<tr>
+<td>servekit (shm, no overlap)</td>
+<td>3.3 + 2.0</td>
+<td>9.3 + 14.2</td>
+<td>10.6 + 16.4</td>
+</tr>
+<tr>
+<td><strong>servekit (shm, overlap)</strong></td>
+<td><strong>2.1</strong></td>
+<td><strong>14.3</strong></td>
+<td><strong>16.2</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>Weight loading time (s) on Clariden</em></p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Loader</th>
+<th>Apertus-8B-Instruct-2509</th>
+<th>Llama-3.1-70B-Instruct</th>
+<th>GLM-4.7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default loader (mmap)</td>
+<td>92.8</td>
+<td>794.2</td>
+<td>861.6</td>
+</tr>
+<tr>
+<td><code>--weight-loader-disable-mmap</code></td>
+<td>4.5</td>
+<td>27.8 (num_threads=4)</td>
+<td>263.7 (num_threads=2)</td>
+</tr>
+<tr>
+<td><code>--load-format fastsafetensors</code></td>
+<td>11.9</td>
+<td>48.6</td>
+<td>113.8</td>
+</tr>
+<tr>
+<td>servekit (shm, no overlap)</td>
+<td>1.1 + 0.9</td>
+<td>5.1 + 6.0</td>
+<td>40.8 + 6.5</td>
+</tr>
+<tr>
+<td><strong>servekit (shm, overlap)</strong></td>
+<td><strong>0.9</strong></td>
+<td><strong>6.0</strong></td>
+<td><strong>6.7</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>--weight-loader-disable-mmap</code> OOMs on GLM-4.7, so we had
+to reduce the number of threads to 4 on Bristen and 2 on Clariden.
+Similarly, it OOMs on Llama-3.1-70B-Instruct on Clariden, so we had to
+reduce the number of threads to 4.</li>
+<li><code>fastsafetensors</code> does not work for multi-node currently;
+the reported result for GLM-4.7 is a patched version.</li>
+</ul>
+<blockquote>
+<p><strong>Lesson.</strong> The one-flag loaders read the full model on
+every rank, so load time grows with node count. <code>servekit</code>
+stages only each node’s shard, so it stays roughly constant: GLM-4.7
+(717 GB) loads about as fast as Llama-70B (141 GB), ~16s vs. ~14s.</p>
+</blockquote>
+<p><strong>servekit’s limitations</strong></p>
+<ul>
+<li><p><strong>On Correctness</strong>: We rely on
+<code>ShardedStateLoader</code>, the loader behind
+<code>--load-format sharded_state</code>, which we discovered contained
+some bugs. To spot bugs, we use
+<code>servekit verify --url &lt;ip&gt; -record gold.json</code> to
+record the gold logprobs of a model served with the default loader, and
+then use
+<code>servekit verify --url &lt;ip&gt; -compare gold.json</code> to
+compare the logprobs of the same model served with
+<code>servekit</code>. This is a very strict test that checks that the
+logprobs are equal up to <code>1e-6</code>. All models above pass this
+test. However, some models currently don’t, because of bugs in
+<code>ShardedStateLoader</code> (e.g. <code>gpt-oss-20b</code>). It is
+therefore important, when using <code>servekit</code>, to first check
+that your model is supported with <code>servekit verify</code>. See <a
+href="https://github.com/eth-easl/servekit/blob/main/tests/e2e/scripts/glm51-fp8-multinode-pp.sbatch">this
+sbatch script</a> for an example of how we use
+<code>servekit verify</code> to check a model (GLM-5.1-FP8, multinode,
+TP4/PP4/EP4) against a baseline before trusting the presharded loader
+for it.</p>
+<p>Here are the bugs I discovered that I raised to the SGLang team:</p>
+<ul>
+<li><a href="https://github.com/sgl-project/sglang/issues/34448">mxfp4 +
+sharded_state load format silently drops expert weights
+(gpt-oss-20b)</a> (#34448)
+<ul>
+<li>Relevant for Kimi-K3</li>
+</ul></li>
+<li><a
+href="https://github.com/sgl-project/sglang/issues/35702"><code>sharded_state</code>
+cannot save and load an MLA model</a> (#35702)
+<ul>
+<li>Relevant for GLM-5.x models.</li>
+<li><code>servekit</code> now patches sglang to fix this issue, but it
+is not a permanent solution.</li>
+</ul></li>
+</ul>
+<p>The following PRs are fixed to the aboves issues respectively:</p>
+<ul>
+<li><a href="https://github.com/sgl-project/sglang/pull/35715">Manually
+register kv_b_proj to attn_mha so mla model work with
+ShardedModelLoader</a> (#35715)</li>
+<li><a href="https://github.com/sgl-project/sglang/pull/34558">Preserve
+MXFP4 Triton weights in sharded state</a> (#34558)</li>
+</ul></li>
+<li><p><strong>On ergonomics</strong>: Presharding the models implies a
+separate prepare step; <code>servekit</code> tries to simplify this by
+doing it automatically on the first run, so users don’t need to worry
+about it. When running
+<code>servekit launch --servekit-artifact-path &lt;path&gt; python -m sglang.launch_server ...</code>,
+a presharded copy of the model is created in <code>&lt;path&gt;</code>.
+This causes a first run to be slower than the default loader.</p></li>
+</ul>
+<p><strong>servekit vs. the other loaders</strong></p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Method</th>
+<th>Pros ✅</th>
+<th>Cons ❌</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default loader (mmap)</td>
+<td></td>
+<td>Really slow on Lustre</td>
+</tr>
+<tr>
+<td><code>--weight-loader-disable-mmap</code></td>
+<td>One flag, 2.8x to 16x faster than default</td>
+<td>- OOMs on large models (GLM-4.7), needed <code>num_threads=4</code>
+to fit<br>- Loads all weights per rank so scales badly with model
+size<br>- Needs a full node: 3.9x slower at 32 CPUs than at 128</td>
+</tr>
+<tr>
+<td><code>--load-format fastsafetensors</code></td>
+<td>- One flag, significant speedups</td>
+<td>- Doesn’t work for multi-node yet; GLM-4.7 result needed a patched
+version<br>- Scales badly with node count due to costly NCCL through
+Slingshot</td>
+</tr>
+<tr>
+<td>servekit</td>
+<td>- Fastest across all models<br>- If model size scales linearly with
+node count, weight size loaded per node is constant and so is time (see
+Llama vs. GLM-4.7, 14s vs. 16s)</td>
+<td>- Slower first run<br>- Relies on <code>ShardedStateLoader</code>, a
+correctness check is needed</td>
+</tr>
+</tbody>
+</table>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>A threadpool of size 8 is used to do mmap in parallel.<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Actually, when a page fault happens a certain number X
+of pages is loaded at once for efficiency, thanks to readahead. This X
+is set by the Lustre client. However, even with this in mind, the
+general intuition that this causes many small network round trips
+remains.<a href="#fnref2" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p><a href="https://arxiv.org/abs/2505.23072">Speeding up
+Model Loading with fastsafetensors</a> (<a
+href="https://github.com/foundation-model-stack/fastsafetensors">GitHub</a>)<a
+href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>
