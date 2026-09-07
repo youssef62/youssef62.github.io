@@ -4,9 +4,6 @@ pagetitle: "Fast LLM weights loading from Lustre datastores"
 
 <a href="/" class="home-button">🏠 Home</a>
 
-*This work has been conducted as an internship at the EPFL AI Center and was supervised by [Xiaozhe Yao](https://about.yao.sh/), Systems Group, ETHZ.*
-
-# Fast LLM weights loading from Lustre datastores
 
 <center>
 <img src="assets/fast-weight-loading/epfl-ai-center-logo.png" alt="EPFL AI Center" style="height: 32px;">
@@ -15,6 +12,13 @@ pagetitle: "Fast LLM weights loading from Lustre datastores"
 &nbsp;&nbsp;&nbsp;
 <img src="assets/fast-weight-loading/easl-logo.png" alt="ETH EASL" style="height: 32px;">
 </center>
+
+*This work has been conducted as an internship at the EPFL AI Center and was supervised by [Xiaozhe Yao](https://about.yao.sh/), Systems Group, ETHZ.*
+
+
+
+# Fast LLM weights loading from Lustre datastores
+
 
 
 This summer, I had the opportunity to intern at the EPFL AI Center and work on improving the cold start time of LLMs on the [SwissAI serving platform](https://serving.swissai.svc.cscs.ch/): a research platform for serving LLMs on CSCS clusters on top of SLURM and [FirecREST](https://www.cscs.ch/services/products/firecrest) with the goal of enabling researchers to serve and use LLMs. One current limitation of the platform (and many inference engines in general) is that cold start times are long, which slows down research and wastes resources. 
@@ -240,7 +244,7 @@ This sweep uses SGLang v0.5.16 (image `lmsysorg/sglang:v0.5.16`).
 
 ## Final Thoughts
 
-I learnt a lot in this project! I hope this post will be of help to you if you are facing slow weight loading times. If you use HDD backed Lustre storage for you weights and you want to try [`servekit`](https://github.com/eth-easl/servekit), do not hesitate to reach out to me at my email: "name dot family name at epfl dot ch". I will be happy to help you get started with it. 
+I learnt a lot in this project! I hope this post will be of help to you if you are facing slow weight loading times. If you use HDD backed Lustre storage for you weights and you want to try [`servekit`](https://github.com/eth-easl/servekit), do not hesitate to reach out to me at my email: "name dot family name at gmail dot com". I will be happy to help you get started with it. 
 
 [^1]: A threadpool of size 8 is used to do mmap in parallel. 
 
