@@ -13,13 +13,12 @@ title: "Fast LLM weights loading from Lustre datastores"
 <img src="assets/fast-weight-loading/easl-logo.png" alt="ETH EASL" style="height: 32px;">
 </center>
 
-*This work was conducted as a summer internship at the EPFL AI Center, with supervision from Xiaozhe Yao (EASL Lab, Systems Group, ETH Zurich).*
 
+This summer, I had the opportunity to intern at the EPFL AI Center and work on improving the cold start time of LLMs on the [SwissAI serving platform](https://serving.swissai.svc.cscs.ch/): a research platform for serving LLMs on CSCS clusters on top of SLURM and [FirecREST](https://www.cscs.ch/services/products/firecrest) with the goal of enabling researchers to serve and use LLMs. One current limitation of the platform (and many inference engines in general) is that cold start times are long, which slows down research and wastes resources. 
 
+In general, inference engines like vLLM or SGLang need to go through many steps before they can serve requests (for e.g., importign the dependencies, loading the model, capturing CUDA graphs, etc.). In the case of the SwissAI serving platform, we observed that most of the cold start time is spent loading weights from a [Lustre](https://www.lustre.org/) datastore to the GPU. 
 
-Cold start times for LLMs can be significant, slowing down research and development and wasting resources. Inference engines like vLLM or SGLang need to go through many steps before they can serve requests. This includes: importing dependencies, loading the model weights from remote storage to GPU memory, capturing CUDA graphs, compiling JIT kernels, and initializing NCCL communication. In the case of the SwissAI serving platform, we observed that most of the cold start time is spent loading weights from a Lustre datastore to the GPU. 
-
-In this post, I'll focus on weight loading from Lustre datastores. I'll start by a per step breakdown, showing that the weight-loading step is the bottleneck. I will then benchmark the default loader and show that its use of `mmap` is the cause. Then I'll show how we could reduce the weight-loading time from ~400s to ~10s. The ideas are packaged in a small wrapper called [servekit](https://github.com/eth-easl/servekit).
+In this post, I'll focus on **weight loading from Lustre datastores**. I'll show you how I was able to reduce the weight-loading time from **~827s to ~16s** (GLM4.7). The ideas are packaged in a small wrapper called <a href="https://github.com/eth-easl/servekit"><svg class="gh-icon" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg> servekit</a>. 
 
 
 ## I. Time Breakdown
@@ -71,8 +70,6 @@ This still leaves another possible explanation: maybe it's not `mmap` itself but
 We get **59.1s** for weight loading, which is **7.7x faster** than the default loader but worse than `--weight-loader-disable-mmap`. This confirms again that the bottleneck was `mmap` and not the small tensor copies from host to device.
 
 This is a huge improvement and shows that `mmap` is not suitable for weight loading on Lustre file systems. However, **2.8GiB/s** is still far from the theoretical maximum of **4x23.28 GiB/s**. Let's see if we can do better.
-
-
 
 
 ### 2. Understanding the lustre data storage
@@ -154,17 +151,7 @@ Here's the current breakdown of the cold start of our best method, **/dev/shm st
 <img src="assets/fast-weight-loading/overlap_breakdown.png" alt="Cold start phase breakdown for the /dev/shm staging + presharded + overlap arm, with the staging shown as a separate bar underneath that finishes while the engine is still in process_startup" width="85%">
 </figure></center>
 
-> ⚠️ **Warning.** We notice that, in general, `--cpus-per-task` can have a large impact on weight loading speed. The experiments above were all run with `--cpus-per-task=128`, i.e. on a full node. Here are **--weight-loader-disable-mmap** and the **/dev/shm staging + presharded + overlap** swept over the CPU budget:
->
->
-> | CPUs | `nommap` weight_loading (s) | `nommap` total (s) | overlap stage + weight_loading (s) | overlap total (s) |
-> |---|---|---|---|---|
-> | 16 | 192.2 | 373.1 | 29.2 (stage) + 12.2 | 227.9 |
-> | 32 | 189.6 | 376.9 | 34.1 (stage) + 11.2 | 222.2 |
-> | 64 | 102.9 | 292.9 | 21.5 (stage) + 11.2 | 191.0 |
-> | 128 | 48.9 | 216.6 | 15.2 (stage) + 9.3 | 184.2 |
->
-> Both are sensitive to CPU budget. `--weight-loader-disable-mmap`'s weight loading time scales almost **linearly** with number of cpus. In this case, it's important to use a full node. Our technique, is affected by CPU budget, but not significantly. 
+
 
 ### 3. Fast weight loading with servekit
 
