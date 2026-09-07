@@ -4,7 +4,7 @@ pagetitle: "Fast LLM weights loading from Lustre datastores"
 
 <a href="/" class="home-button">🏠 Home</a>
 
-*This work has been conducted as an internship at the EPFL AI Center and was supervised by Xiaozhe Yao, Systems Group, EASL, ETHZ.*
+*This work has been conducted as an internship at the EPFL AI Center and was supervised by [Xiaozhe Yao](https://about.yao.sh/), Systems Group, ETHZ.*
 
 # Fast LLM weights loading from Lustre datastores
 
