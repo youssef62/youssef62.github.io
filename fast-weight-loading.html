@@ -304,14 +304,16 @@ in flight, improving the bandwidth.</p>
 <code>O_DIRECT</code> reads (no page cache), we need parallelism both
 across OSTs and within a single OST.</p>
 </blockquote>
-<p>Equipped with this knowledge, we try the following: * Load in
-parallel (60 processes per file, which is maybe too much) from Lustre to
-<code>/dev/shm</code> (RAM), and then use SGLang’s default loader from
-<code>/dev/shm</code> to GPU. The staging takes <code>7s</code>, which
-is more than <strong>18 GiB/s</strong>, already much better than
-everything we have seen before. The weight loading takes
-<code>20s</code>, which is <code>&gt; 6 GiB/s</code>. Overall, this is a
-<strong>16x speedup</strong> over the default loader.</p>
+<p>Equipped with this knowledge, we try the following:</p>
+<ul>
+<li>Load in parallel (60 processes per file, which is maybe too much)
+from Lustre to <code>/dev/shm</code> (RAM), and then use SGLang’s
+default loader from <code>/dev/shm</code> to GPU. The staging takes
+<code>7s</code>, which is more than <strong>18 GiB/s</strong>, already
+much better than everything we have seen before. The weight loading
+takes <code>20s</code>, which is <code>&gt; 6 GiB/s</code>. Overall,
+this is a <strong>16x speedup</strong> over the default loader.</li>
+</ul>
 <center>
 <figure>
 <img src="assets/fast-weight-loading/parallel-reads-lustre.png" alt="Parallel processes read file chunks from different OSTs on Lustre into /dev/shm, which SGLang then reads from" width="70%">
@@ -619,7 +621,7 @@ cannot save and load an MLA model</a> (#35702)
 is not a permanent solution.</li>
 </ul></li>
 </ul>
-<p>The following PRs are fixed to the aboves issues respectively:</p>
+<p>The following PRs fix the aboves issues respectively:</p>
 <ul>
 <li><a href="https://github.com/sgl-project/sglang/pull/35715">Manually
 register kv_b_proj to attn_mha so mla model work with
@@ -679,6 +681,29 @@ correctness check is needed</td>
 </tr>
 </tbody>
 </table>
+<h2 id="conclusion">Conclusion</h2>
+<p>Cold-start weight loading from a Lustre datastore can dominate
+inference launch time—up to ~827 s for models like GLM-4.7. We looked at
+three ways to speed it up: the default mmap loader,
+<code>--weight-loader-disable-mmap</code>, and
+<code>--load-format fastsafetensors</code>. Each improves over the
+baseline, but they still scale poorly with model size or node count
+because every rank ends up reading the full weights over the
+network.</p>
+<p><code>servekit</code> takes a different approach: it preshards the
+weights once and stages each node’s shard on fast node-local storage
+before launch. This keeps the per-node load roughly constant, bringing
+GLM-4.7 down to about 16 s while scaling from one node to many. The main
+trade-offs are a slower first run (the initial preshard step) and the
+need to verify correctness with <code>servekit verify</code>, since it
+builds on the still-evolving <code>ShardedStateLoader</code>.</p>
+<p>If you’re hitting similar cold-start bottlenecks, you can try
+<code>servekit</code> at <a
+href="https://github.com/eth-easl/servekit">eth-easl/servekit</a>. I
+learnt a lot working on this project; if you use HDD-backed Lustre
+storage for your weights and want to try <code>servekit</code>, feel
+free to reach out at <em>name dot family name at epfl dot ch</em>—I’ll
+be happy to help you get started.</p>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />

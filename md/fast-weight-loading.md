@@ -112,6 +112,7 @@ Throughput scales close to linearly with reader count up to 8, then keeps climbi
 > **Lesson.** To maximize bandwidth on Lustre storage with `O_DIRECT` reads (no page cache), we need parallelism both across OSTs and within a single OST.
 
 Equipped with this knowledge, we try the following:
+
 * Load in parallel (60 processes per file, which is maybe too much) from Lustre to `/dev/shm` (RAM), and then use SGLang's default loader from `/dev/shm` to GPU. The staging takes `7s`, which is more than **18 GiB/s**, already much better than everything we have seen before. The weight loading takes `20s`, which is `> 6 GiB/s`. Overall, this is a **16x speedup** over the default loader.
 
 <center><figure>
@@ -219,7 +220,7 @@ This sweep uses SGLang v0.5.16 (image `lmsysorg/sglang:v0.5.16`).
       - Relevant for GLM-5.x models. 
       - `servekit` now patches sglang to fix this issue, but it is not a permanent solution.
 
-  The following PRs are fixed to the aboves issues respectively: 
+  The following PRs fix the aboves issues respectively: 
     - [Manually register kv_b_proj to attn_mha so mla model work with ShardedModelLoader](https://github.com/sgl-project/sglang/pull/35715) (#35715)
     - [Preserve MXFP4 Triton weights in sharded state](https://github.com/sgl-project/sglang/pull/34558) (#34558)
 
@@ -234,7 +235,13 @@ This sweep uses SGLang v0.5.16 (image `lmsysorg/sglang:v0.5.16`).
 | `--load-format fastsafetensors` | - One flag, significant speedups | - Doesn't work for multi-node yet; GLM-4.7 result needed a patched version<br>- Scales badly with node count due to costly NCCL through Slingshot |
 | servekit | - Fastest across all models<br>- If model size scales linearly with node count, weight size loaded per node is constant and so is time (see Llama vs. GLM-4.7, 14s vs. 16s) | - Slower first run<br>- Relies on `ShardedStateLoader`, a correctness check is needed |
 
+## Conclusion
 
+Cold-start weight loading from a Lustre datastore can dominate inference launch time—up to ~827 s for models like GLM-4.7. We looked at three ways to speed it up: the default mmap loader, `--weight-loader-disable-mmap`, and `--load-format fastsafetensors`. Each improves over the baseline, but they still scale poorly with model size or node count because every rank ends up reading the full weights over the network.
+
+`servekit` takes a different approach: it preshards the weights once and stages each node's shard on fast node-local storage before launch. This keeps the per-node load roughly constant, bringing GLM-4.7 down to about 16 s while scaling from one node to many. The main trade-offs are a slower first run (the initial preshard step) and the need to verify correctness with `servekit verify`, since it builds on the still-evolving `ShardedStateLoader`.
+
+If you're hitting similar cold-start bottlenecks, you can try `servekit` at [eth-easl/servekit](https://github.com/eth-easl/servekit). I learnt a lot working on this project; if you use HDD-backed Lustre storage for your weights and want to try `servekit`, feel free to reach out at *name dot family name at epfl dot ch*—I’ll be happy to help you get started.
 
 
 [^1]: A threadpool of size 8 is used to do mmap in parallel. 
