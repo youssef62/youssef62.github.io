@@ -235,14 +235,9 @@ This sweep uses SGLang v0.5.16 (image `lmsysorg/sglang:v0.5.16`).
 | `--load-format fastsafetensors` | - One flag, significant speedups | - Doesn't work for multi-node yet; GLM-4.7 result needed a patched version<br>- Scales badly with node count due to costly NCCL through Slingshot |
 | servekit | - Fastest across all models<br>- If model size scales linearly with node count, weight size loaded per node is constant and so is time (see Llama vs. GLM-4.7, 14s vs. 16s) | - Slower first run<br>- Relies on `ShardedStateLoader`, a correctness check is needed |
 
-## Conclusion
+## Final Thoughts
 
-Cold-start weight loading from a Lustre datastore can dominate inference launch time—up to ~827 s for models like GLM-4.7. We looked at three ways to speed it up: the default mmap loader, `--weight-loader-disable-mmap`, and `--load-format fastsafetensors`. Each improves over the baseline, but they still scale poorly with model size or node count because every rank ends up reading the full weights over the network.
-
-`servekit` takes a different approach: it preshards the weights once and stages each node's shard on fast node-local storage before launch. This keeps the per-node load roughly constant, bringing GLM-4.7 down to about 16 s while scaling from one node to many. The main trade-offs are a slower first run (the initial preshard step) and the need to verify correctness with `servekit verify`, since it builds on the still-evolving `ShardedStateLoader`.
-
-If you're hitting similar cold-start bottlenecks, you can try `servekit` at [eth-easl/servekit](https://github.com/eth-easl/servekit). I learnt a lot working on this project; if you use HDD-backed Lustre storage for your weights and want to try `servekit`, feel free to reach out at *name dot family name at epfl dot ch*—I’ll be happy to help you get started.
-
+I learnt a lot in this project! I hope this post will be of help to you if you are facing slow weight loading times. If you use HDD backed Lustre storage for you weights and you want to try [`servekit`](https://github.com/eth-easl/servekit), do not hesitate to reach out to me at my email: "name dot family name at epfl dot ch". I will be happy to help you get started with it. 
 
 [^1]: A threadpool of size 8 is used to do mmap in parallel. 
 

@@ -681,29 +681,13 @@ correctness check is needed</td>
 </tr>
 </tbody>
 </table>
-<h2 id="conclusion">Conclusion</h2>
-<p>Cold-start weight loading from a Lustre datastore can dominate
-inference launch time—up to ~827 s for models like GLM-4.7. We looked at
-three ways to speed it up: the default mmap loader,
-<code>--weight-loader-disable-mmap</code>, and
-<code>--load-format fastsafetensors</code>. Each improves over the
-baseline, but they still scale poorly with model size or node count
-because every rank ends up reading the full weights over the
-network.</p>
-<p><code>servekit</code> takes a different approach: it preshards the
-weights once and stages each node’s shard on fast node-local storage
-before launch. This keeps the per-node load roughly constant, bringing
-GLM-4.7 down to about 16 s while scaling from one node to many. The main
-trade-offs are a slower first run (the initial preshard step) and the
-need to verify correctness with <code>servekit verify</code>, since it
-builds on the still-evolving <code>ShardedStateLoader</code>.</p>
-<p>If you’re hitting similar cold-start bottlenecks, you can try
-<code>servekit</code> at <a
-href="https://github.com/eth-easl/servekit">eth-easl/servekit</a>. I
-learnt a lot working on this project; if you use HDD-backed Lustre
-storage for your weights and want to try <code>servekit</code>, feel
-free to reach out at <em>name dot family name at epfl dot ch</em>—I’ll
-be happy to help you get started.</p>
+<h2 id="final-thoughts">Final Thoughts</h2>
+<p>I learnt a lot in this project! I hope this post will be of help to
+you if you are facing slow weight loading times. If you use HDD backed
+Lustre storage for you weights and you want to try <a
+href="https://github.com/eth-easl/servekit"><code>servekit</code></a>,
+do not hesitate to reach out to me at my email: “name dot family name at
+epfl dot ch”. I will be happy to help you get started with it.</p>
 <section id="footnotes" class="footnotes footnotes-end-of-document"
 role="doc-endnotes">
 <hr />
