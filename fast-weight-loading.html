@@ -114,7 +114,7 @@ limitation of the platform (and many inference engines in general) is
 that cold start times are long, which slows down research and wastes
 resources.</p>
 <p>In general, inference engines like vLLM or SGLang need to go through
-many steps before they can serve requests (for e.g., importign the
+many steps before they can serve requests (for e.g., importing the
 dependencies, loading the model, capturing CUDA graphs, etc.). In the
 case of the SwissAI serving platform, we observed that most of the cold
 start time is spent loading weights from a <a
@@ -136,7 +136,8 @@ served with SGLang v0.5.10 (image <code>lmsysorg/sglang:v0.5.10</code>)
 with tensor-parallel size 4 on a single Bristen cluster node, with
 weights loaded with the default sglang model loader. SML keeps models in
 <code>capstor/store</code>, which is a <a
-href="https://www.lustre.org/">Lustre</a> file system.</p>
+href="https://www.lustre.org/">Lustre</a> file system backed by
+HDDs.</p>
 <center>
 <figure>
 <img src="assets/fast-weight-loading/time_breakdown.png" alt="Stacked bar of cold start phase durations, dominated by weight_loading at 72% of the 629.79s total" width="85%">
@@ -145,7 +146,7 @@ href="https://www.lustre.org/">Lustre</a> file system.</p>
 <p><em>These breakdowns are highly variable: they depend on
 <code>capstor</code> contention, per-node differences, and other
 factors. <a
-href="https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">This
+href="https://github.com/youssef62/cold-start-elimination-experiments-swissai/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">This
 document</a> compiles 3 runs of the baseline breakdown on different days
 with per-phase statistics (mean, stddev, min, max).</em></p>
 <p>As we can see, loading weights from persistent storage
@@ -166,16 +167,16 @@ href="https://docs.cscs.ch/alps/hardware/#alps-high-speed-network">4 HPE
 Cray Slingshot-11 NICs</a> with a combined bandwidth of <strong>4 x
 23.28 GiB/s</strong>, so that NIC bandwidth should be our bottleneck. We
 should be able to do much better than <strong>0.29 GiB/s</strong>.</p>
-<p>So let’s try to understand:</p>
+<p>This raises the obvious question:</p>
 <p><em>Why is the default weight loader so slow in our setup?</em></p>
 <h3 id="the-default-weight-loader-and-mmap">1. The default weight loader
 and mmap</h3>
 <p>The default SGLang loader uses <code>mmap</code> to load the weight
 files.</p>
-<p>But what is <code>mmap</code>? (I wrote a longer explanation of how
-<code>mmap</code> works <a href="mmap.html">here</a>.) <code>mmap</code>
-is a system call that maps a virtual memory region to a file. That
-memory region will not be mapped to a physical memory region until it is
+<p>But what is <code>mmap</code>? <code>mmap</code> is a system call
+that maps a virtual memory region to a file. (For a longer explanation
+of mmap, see <a href="mmap.html">my other blog post</a>.) That memory
+region will not be mapped to a physical memory region until it is
 accessed a first time. When a <code>mmap</code>ed page is accessed for
 the first time, the kernel will realize that the virtual page does not
 have a corresponding physical page but is <code>mmap</code>ed to a file.
@@ -413,7 +414,7 @@ ran before the default loader experiment.</li>
 <li>Similarly to the previous section, these results are highly
 variable, so we provide 3 runs of each experiment (conducted on
 different days) in <a
-href="https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">this
+href="https://github.com/youssef62/cold-start-elimination-experiments-swissai/blob/main/experiments/lustre-loading-exp/results/phase_stats.md">this
 document</a> with statistics (mean, stddev, min, max).</li>
 </ul>
 <p>Here’s the current breakdown of the cold start of our best method,
@@ -606,31 +607,17 @@ sbatch script</a> for an example of how we use
 <code>servekit verify</code> to check a model (GLM-5.1-FP8, multinode,
 TP4/PP4/EP4) against a baseline before trusting the presharded loader
 for it.</p>
-<p>Here are the bugs I discovered that I raised to the SGLang team:</p>
-<ul>
-<li><a href="https://github.com/sgl-project/sglang/issues/34448">mxfp4 +
-sharded_state load format silently drops expert weights
-(gpt-oss-20b)</a> (#34448)
-<ul>
-<li>Relevant for Kimi-K3</li>
-</ul></li>
-<li><a
-href="https://github.com/sgl-project/sglang/issues/35702"><code>sharded_state</code>
-cannot save and load an MLA model</a> (#35702)
-<ul>
-<li>Relevant for GLM-5.x models.</li>
-<li><code>servekit</code> now patches sglang to fix this issue, but it
-is not a permanent solution.</li>
-</ul></li>
-</ul>
-<p>The following PRs fix the aboves issues respectively:</p>
-<ul>
-<li><a href="https://github.com/sgl-project/sglang/pull/35715">Manually
-register kv_b_proj to attn_mha so mla model work with
-ShardedModelLoader</a> (#35715)</li>
-<li><a href="https://github.com/sgl-project/sglang/pull/34558">Preserve
-MXFP4 Triton weights in sharded state</a> (#34558)</li>
-</ul></li>
+<p>I discovered and reported two bugs in <code>ShardedStateLoader</code>
+to the SGLang team: <a
+href="https://github.com/sgl-project/sglang/issues/34448">#34448</a>
+(mxfp4 weights are silently dropped, relevant for Kimi-K3) and <a
+href="https://github.com/sgl-project/sglang/issues/35702">#35702</a>
+(<code>sharded_state</code> cannot load MLA models, relevant for
+GLM-5.x; <code>servekit</code> currently patches this one, but that is
+not a permanent solution). The corresponding fixes are in PRs <a
+href="https://github.com/sgl-project/sglang/pull/35715">#35715</a> and
+<a href="https://github.com/sgl-project/sglang/pull/34558">#34558</a>,
+respectively.</p></li>
 <li><p><strong>On ergonomics</strong>: Presharding the models implies a
 separate prepare step; <code>servekit</code> tries to simplify this by
 doing it automatically on the first run, so users don’t need to worry

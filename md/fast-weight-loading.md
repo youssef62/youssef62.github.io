@@ -23,7 +23,7 @@ pagetitle: "Fast LLM weights loading from Lustre datastores"
 
 This summer, I had the opportunity to intern at the EPFL AI Center and work on improving the cold start time of LLMs on the [SwissAI serving platform](https://serving.swissai.svc.cscs.ch/): a research platform for serving LLMs on CSCS clusters on top of SLURM and [FirecREST](https://www.cscs.ch/services/products/firecrest) with the goal of enabling researchers to serve and use LLMs. One current limitation of the platform (and many inference engines in general) is that cold start times are long, which slows down research and wastes resources. 
 
-In general, inference engines like vLLM or SGLang need to go through many steps before they can serve requests (for e.g., importign the dependencies, loading the model, capturing CUDA graphs, etc.). In the case of the SwissAI serving platform, we observed that most of the cold start time is spent loading weights from a [Lustre](https://www.lustre.org/) datastore to the GPU. 
+In general, inference engines like vLLM or SGLang need to go through many steps before they can serve requests (for e.g., importing the dependencies, loading the model, capturing CUDA graphs, etc.). In the case of the SwissAI serving platform, we observed that most of the cold start time is spent loading weights from a [Lustre](https://www.lustre.org/) datastore to the GPU. 
 
 In this post, I'll focus on **weight loading from Lustre datastores**. I'll show you how I was able to reduce the weight-loading time from **~827s to ~16s** (GLM4.7). The ideas are packaged in a small wrapper called <a href="https://github.com/eth-easl/servekit"><svg class="gh-icon" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg> servekit</a>. 
 
@@ -32,13 +32,13 @@ In this post, I'll focus on **weight loading from Lustre datastores**. I'll show
 
 Let's first map the cold start steps to their wall-clock time to identify the bottlenecks. We can do this by parsing the logs printed by the SGLang server during the cold start phase. I added the log parser to `servekit` as a CLI command: `servekit profile`. 
 
-For this experiment, we use `Llama-3.1-70B-Instruct` served with SGLang v0.5.10 (image `lmsysorg/sglang:v0.5.10`) with tensor-parallel size 4 on a single Bristen cluster node, with weights loaded with the default sglang model loader. SML keeps models in `capstor/store`, which is a [Lustre](https://www.lustre.org/) file system.  
+For this experiment, we use `Llama-3.1-70B-Instruct` served with SGLang v0.5.10 (image `lmsysorg/sglang:v0.5.10`) with tensor-parallel size 4 on a single Bristen cluster node, with weights loaded with the default sglang model loader. SML keeps models in `capstor/store`, which is a [Lustre](https://www.lustre.org/) file system backed by HDDs. 
 
 <center><figure>
 <img src="assets/fast-weight-loading/time_breakdown.png" alt="Stacked bar of cold start phase durations, dominated by weight_loading at 72% of the 629.79s total" width="85%">
 </figure></center>
 
-*These breakdowns are highly variable: they depend on `capstor` contention, per-node differences, and other factors. [This document](https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md) compiles 3 runs of the baseline breakdown on different days with per-phase statistics (mean, stddev, min, max).*
+*These breakdowns are highly variable: they depend on `capstor` contention, per-node differences, and other factors. [This document](https://github.com/youssef62/cold-start-elimination-experiments-swissai/blob/main/experiments/lustre-loading-exp/results/phase_stats.md) compiles 3 runs of the baseline breakdown on different days with per-phase statistics (mean, stddev, min, max).*
 
 
 As we can see, loading weights from persistent storage (`capstor/store`) is by far the most time-consuming step, with **72%** of the total cold start time. It is followed by CUDA graphs capture (`piecewise_cuda_graph_capture` + `cuda_graph_capture`) which is **17%**. The other steps account for around **11%** of the total cold start time and are mostly JIT compilation and Python package imports.
@@ -47,7 +47,7 @@ As we can see, loading weights from persistent storage (`capstor/store`) is by f
 
 Weight loading is clearly the bottleneck. **453.74** seconds for a 70B (141 GB) model is a lot: that is only **0.29 GiB/s**. [Capstor's aggregate theoretical bandwidth](https://docs.cscs.ch/alps/storage/) (across all users and jobs) is a whopping **1.19 TB/s**, and we are connected to it with [4 HPE Cray Slingshot-11 NICs](https://docs.cscs.ch/alps/hardware/#alps-high-speed-network) with a combined bandwidth of **4 x 23.28 GiB/s**, so that NIC bandwidth should be our bottleneck. We should be able to do much better than **0.29 GiB/s**.
 
-So let's try to understand:
+This raises the obvious question:
 
 *Why is the default weight loader so slow in our setup?*
 
@@ -55,7 +55,7 @@ So let's try to understand:
 
 The default SGLang loader uses `mmap` to load the weight files. 
 
-But what is `mmap`? (I wrote a longer explanation of how `mmap` works [here](mmap.html).) `mmap` is a system call that maps a virtual memory region to a file. That memory region will not be mapped to a physical memory region until it is accessed a first time. When a `mmap`ed page is accessed for the first time, the kernel will realize that the virtual page does not have a corresponding physical page but is `mmap`ed to a file. So it will load the corresponding page from disk to the page cache (RAM) and then associate the virtual page with the page cache page. This is called a **major page fault**. On subsequent access, the virtual page is already mapped to a physical page in the page cache and no disk access is needed. This is called a **minor page fault**. [^1]
+But what is `mmap`? `mmap` is a system call that maps a virtual memory region to a file. (For a longer explanation of mmap, see [my other blog post](mmap.html).) That memory region will not be mapped to a physical memory region until it is accessed a first time. When a `mmap`ed page is accessed for the first time, the kernel will realize that the virtual page does not have a corresponding physical page but is `mmap`ed to a file. So it will load the corresponding page from disk to the page cache (RAM) and then associate the virtual page with the page cache page. This is called a **major page fault**. On subsequent access, the virtual page is already mapped to a physical page in the page cache and no disk access is needed. This is called a **minor page fault**. [^1]
 
 Concretely, in our Llama example, the `DefaultModelLoader` calls methods like `multi_thread_safetensors_weights_iterator`, which return an iterator over pairs (`tensor_name`, `tensor_weights`) where `tensor_weights` is an `mmap`'ed tensor. This iterator is passed to `LlamaForCausalLM`, which passes each parameter (like `ColumnParallelLinear`) its tensor weights. The parameter will then get a view of its needed weights according to its rank (`tp_rank` in the case of `ColumnParallelLinear`) and will then initiate a host (CPU) to device (GPU) copy of the weights.
 
@@ -151,7 +151,7 @@ Equipped with this knowledge, we try the following:
 
 
 * To avoid corrupting our results with any kind of caching, we run the methods in **reverse order** of expected speed and on different nodes, meaning `/dev/shm + presharded + overlap` ran before the default loader experiment. 
-* Similarly to the previous section, these results are highly variable, so we provide 3 runs of each experiment (conducted on different days) in [this document](https://github.com/eth-easl/servekit/blob/main/experiments/lustre-loading-exp/results/phase_stats.md) with statistics (mean, stddev, min, max).
+* Similarly to the previous section, these results are highly variable, so we provide 3 runs of each experiment (conducted on different days) in [this document](https://github.com/youssef62/cold-start-elimination-experiments-swissai/blob/main/experiments/lustre-loading-exp/results/phase_stats.md) with statistics (mean, stddev, min, max).
 
 Here's the current breakdown of the cold start of our best method, **/dev/shm staging + presharded + overlap**. The weight loading is not the bottleneck anymore, the cuda graph capture is. 
 
@@ -220,16 +220,7 @@ This sweep uses SGLang v0.5.16 (image `lmsysorg/sglang:v0.5.16`).
 
 - **On Correctness**: We rely on `ShardedStateLoader`, the loader behind `--load-format sharded_state`, which we discovered contained some bugs. To spot bugs, we use `servekit verify --url <ip> -record gold.json` to record the gold logprobs of a model served with the default loader, and then use `servekit verify --url <ip> -compare gold.json` to compare the logprobs of the same model served with `servekit`. This is a very strict test that checks that the logprobs are equal up to `1e-6`. All models above pass this test. However, some models currently don't, because of bugs in `ShardedStateLoader` (e.g. `gpt-oss-20b`). It is therefore important, when using `servekit`, to first check that your model is supported with `servekit verify`. See [this sbatch script](https://github.com/eth-easl/servekit/blob/main/tests/e2e/scripts/glm51-fp8-multinode-pp.sbatch) for an example of how we use `servekit verify` to check a model (GLM-5.1-FP8, multinode, TP4/PP4/EP4) against a baseline before trusting the presharded loader for it. 
 
-  Here are the bugs I discovered that I raised to the SGLang team: 
-    - [mxfp4 + sharded_state load format silently drops expert weights (gpt-oss-20b)](https://github.com/sgl-project/sglang/issues/34448) (#34448)
-      - Relevant for Kimi-K3
-    - [`sharded_state` cannot save and load an MLA model](https://github.com/sgl-project/sglang/issues/35702) (#35702)
-      - Relevant for GLM-5.x models. 
-      - `servekit` now patches sglang to fix this issue, but it is not a permanent solution.
-
-  The following PRs fix the aboves issues respectively: 
-    - [Manually register kv_b_proj to attn_mha so mla model work with ShardedModelLoader](https://github.com/sgl-project/sglang/pull/35715) (#35715)
-    - [Preserve MXFP4 Triton weights in sharded state](https://github.com/sgl-project/sglang/pull/34558) (#34558)
+  I discovered and reported two bugs in `ShardedStateLoader` to the SGLang team: [#34448](https://github.com/sgl-project/sglang/issues/34448) (mxfp4 weights are silently dropped, relevant for Kimi-K3) and [#35702](https://github.com/sgl-project/sglang/issues/35702) (`sharded_state` cannot load MLA models, relevant for GLM-5.x; `servekit` currently patches this one, but that is not a permanent solution). The corresponding fixes are in PRs [#35715](https://github.com/sgl-project/sglang/pull/35715) and [#34558](https://github.com/sgl-project/sglang/pull/34558), respectively.
 
 - **On ergonomics**: Presharding the models implies a separate prepare step; `servekit` tries to simplify this by doing it automatically on the first run, so users don't need to worry about it. When running `servekit launch --servekit-artifact-path <path> python -m sglang.launch_server ...`, a presharded copy of the model is created in `<path>`. This causes a first run to be slower than the default loader. 
 
