@@ -10,6 +10,7 @@ Msc in CS @ EPFL, Lausanne, Switzerland.
 
 Original Work:
 
+* [Fast LLM Weights Loading from Lustre Datastores](fast-weight-loading.html) (Sep 2026)
 * [Efficient RL Fine-tuning with Multi-tenancy](https://servingdev.swissai.svc.cscs.ch/articles/04-multitenancy) (May 2026)
 * [Fast 1D Convolution in CUDA](conv1d-cuda.html) (Aug 2025)
 
