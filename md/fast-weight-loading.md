@@ -60,7 +60,7 @@ But what is `mmap`? `mmap` is a system call that maps a virtual memory region to
 Concretely, in our Llama example, the `DefaultModelLoader` calls methods like `multi_thread_safetensors_weights_iterator`, which return an iterator over pairs (`tensor_name`, `tensor_weights`) where `tensor_weights` is an `mmap`'ed tensor. This iterator is passed to `LlamaForCausalLM`, which passes each parameter (like `ColumnParallelLinear`) its tensor weights. The parameter will then get a view of its needed weights according to its rank (`tp_rank` in the case of `ColumnParallelLinear`) and will then initiate a host (CPU) to device (GPU) copy of the weights.
 
 <center><figure>
-<img src="assets/fast-weight-loading/weight-loading.png" alt="Weight loading: mmap to shard to GPU" width="50%">
+<img src="assets/fast-weight-loading/weight-loading.png" alt="Weight loading: mmap to shard to GPU" width="75%">
 </figure></center>
 
 My hypothesis is that this triggers a **major page fault** for each page touched, which gets loaded from Lustre going through the network to the page cache and then copied to GPU. This would be a very slow process, especially for large models with many tensors spread over many pages. [^2]
