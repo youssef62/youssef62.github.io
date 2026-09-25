@@ -71,6 +71,15 @@ pre {
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
+/* Keep scrolling on the <pre>, not Pandoc's unstyled wrapper div */
+div.sourceCode {
+    overflow: visible;
+}
+
+pre.sourceCode {
+    overflow-x: auto;
+}
+
 pre code {
     background-color: transparent; /* Remove background from code inside pre */
     padding: 0;
