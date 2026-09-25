@@ -189,6 +189,14 @@ img {
     height: auto;
 }
 
+/* Bigger images on small screens (skip fixed-size icons/logos) */
+@media (max-width: 35em) {
+    figure img,
+    center img:only-child {
+        width: 100% !important; /* beat the inline width styles */
+    }
+}
+
 /* Shrink-to-fit table + figure, for small result sets */
 .compact table {
     width: auto;
