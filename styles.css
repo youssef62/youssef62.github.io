@@ -211,7 +211,6 @@ img {
 /* Mobile responsiveness */
 @media (max-width: 35em) {
     body {
-        font-size: 11pt;
         line-height: 1.6;
         padding: 0 1em;
         text-align: left;
