@@ -52,7 +52,7 @@ Let's observe that the first function call (**the root of the tree**) takes $f(n
 <!-- The first case assumes that $f(n) = O(n^{\log_b a - \epsilon})$, meaning that $f$ is asymptotically smaller that $n^{\log_b a}$. This intuitively means that *the work done is concentrated at the leaves*. So total runtime will be the total runtime *of the leaves*. And this is indeed the case, as the master theorem gives us that $T(n) = \Theta(n^{\log_b a})$.  -->
 
 Provided with this, we can give an intuitive, unformal, statement of the master theorem : 
-<div style="position:   relative; width: 145%;">
+<div class="wide-comparison">
 
   <table style="all: unset;width: 100%; table-layout: fixed;">
     <tr >

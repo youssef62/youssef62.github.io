@@ -358,6 +358,7 @@ overflow RAM.</li>
 </ol></li>
 </ul>
 <p><em>Weight loading experiments (s), Bristen</em></p>
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -406,6 +407,7 @@ overflow RAM.</li>
 </tr>
 </tbody>
 </table>
+</div>
 <ul>
 <li>To avoid corrupting our results with any kind of caching, we run the
 methods in <strong>reverse order</strong> of expected speed and on
@@ -453,6 +455,7 @@ README</a>.</p>
 <code>--weight-loader-disable-mmap</code> and
 <code>--load-format fastsafetensors</code> on multiple models.</p>
 <p><em>Config</em></p>
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -477,9 +480,11 @@ README</a>.</p>
 </tr>
 </tbody>
 </table>
+</div>
 <p>This sweep uses SGLang v0.5.16 (image
 <code>lmsysorg/sglang:v0.5.16</code>).</p>
 <p><em>Weight loading time (s) on Bristen</em></p>
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -522,7 +527,9 @@ README</a>.</p>
 </tr>
 </tbody>
 </table>
+</div>
 <p><em>Weight loading time (s) on Clariden</em></p>
+<div class="table-wrap">
 <table>
 <colgroup>
 <col style="width: 25%" />
@@ -571,6 +578,7 @@ README</a>.</p>
 </tr>
 </tbody>
 </table>
+</div>
 <ul>
 <li><code>--weight-loader-disable-mmap</code> OOMs on GLM-4.7, so we had
 to reduce the number of threads to 4 on Bristen and 2 on Clariden.
@@ -627,6 +635,7 @@ a presharded copy of the model is created in <code>&lt;path&gt;</code>.
 This causes a first run to be slower than the default loader.</p></li>
 </ul>
 <p><strong>servekit vs. the other loaders</strong></p>
+<div class="table-wrap">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -670,6 +679,7 @@ correctness check is needed</td>
 </tr>
 </tbody>
 </table>
+</div>
 <h2 id="final-thoughts">Final Thoughts</h2>
 <p>I learnt a lot in this project! I hope this post will be of help to
 you if you are facing slow weight loading times. If you use HDD backed

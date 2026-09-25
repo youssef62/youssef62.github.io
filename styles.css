@@ -83,6 +83,7 @@ code {
     padding: 0.1em 0.3em;
     border-radius: 2px;
     color: #333; /* Explicit text color */
+    overflow-wrap: break-word; /* long identifiers wrap on narrow screens */
 }
 
 /* Fix text selection in code blocks */
@@ -114,6 +115,25 @@ table {
     background-color: #f9f9f9;
 }
 
+/* Wide tables scroll inside the page instead of overflowing it */
+.table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Small screens: tighten tables so they fit more often,
+   and scroll horizontally only when they really can't. */
+@media (max-width: 35em) {
+    table th, table td {
+        padding: 0.35em 0.3em;
+    }
+
+    table th code, table td code {
+        white-space: normal; /* let inline code wrap inside cells */
+    }
+}
+
 table th {
     background-color: #f0f0f0;
     font-weight: bold;
@@ -133,6 +153,12 @@ table tr:nth-child(even) {
 /* Math display (for KaTeX/MathJax) */
 .math {
     overflow-x: auto;
+}
+
+/* Wide display math scrolls instead of pushing the page wider */
+mjx-container[display="true"] {
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /* Blockquotes */
@@ -161,8 +187,23 @@ img {
     font-size: 0.85em;
 }
 
+/* Hand-written wide comparison (master theorem page): stretch past the
+   text column on desktop, but stay full-width on mobile. */
+.wide-comparison {
+    position: relative;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 35.01em) {
+    .wide-comparison {
+        width: 145%;
+    }
+}
+
 .compact img {
-    max-width: 30em;
+    max-width: min(30em, 100%);
     display: block;
     margin: 0 auto;
 }

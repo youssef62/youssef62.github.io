@@ -274,6 +274,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ncu</span> <span class="at">--set</span> full ./benchmark smem</span></code></pre></div>
 <p>This shows us a lot of information, let’s scroll down to the memory
 section and look at the L1 and L2 hit rates</p>
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -295,6 +296,7 @@ section and look at the L1 and L2 hit rates</p>
 </tr>
 </tbody>
 </table>
+</div>
 <p>We can see that the naive kernel makes a really good use the caches.
 As the L2 cache is 6MB it probibly fits the whole input array. The
 <code>mask</code> array also must reside in the L2 cache and is loaded
@@ -302,6 +304,7 @@ once per SM to the L1 and then is always fetched from there.</p>
 <p>But <strong>shared memory is typically faster than L1 cache, so why
 is the shared memory kernel slower?</strong> Let’s look at other
 metrics:</p>
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -328,6 +331,7 @@ metrics:</p>
 </tr>
 </tbody>
 </table>
+</div>
 <p>Let’s analyze and understand these numbers. <strong>Warp Cycles Per
 Issued Instruction</strong> tells us how many cycles it takes for a warp
 to issue an instruction. A higher value means the warp spends more time
